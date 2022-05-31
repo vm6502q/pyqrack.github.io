@@ -26,6 +26,7 @@ class QrackSimulator:
         isHostPointer: TODO
         pyzxCircuit: TODO
     """
+
     def __init__(
         self,
         qubitCount=-1,
@@ -42,7 +43,6 @@ class QrackSimulator:
         pyzxCircuit=None,
     ):
         pass
-
 
     # standard gates
 
@@ -65,7 +65,7 @@ class QrackSimulator:
         """Applies Y gate.
 
         Applies the Pauli “Y” operator to the qubit at “q.”
-        The Pauli “Y” operator is equivalent to a logical “NOT" with 
+        The Pauli “Y” operator is equivalent to a logical “NOT" with
         permutation phase.
 
         Args:
@@ -89,6 +89,7 @@ class QrackSimulator:
             RuntimeError: QrackSimulator raised an exception.
         """
         pass
+
     def h(self, q):
         """Applies H gate.
 
@@ -101,6 +102,7 @@ class QrackSimulator:
             RuntimeError: QrackSimulator raised an exception.
         """
         pass
+
     def s(self, q):
         """Applies S gate.
 
@@ -113,6 +115,7 @@ class QrackSimulator:
             RuntimeError: QrackSimulator raised an exception.
         """
         pass
+
     def t(self, q):
         """Applies T gate.
 
@@ -162,7 +165,7 @@ class QrackSimulator:
 
         Args:
             q: the qubit number on which the gate is applied to.
-            th: theta 
+            th: theta
             ph: phi
             la: lambda
 
@@ -184,6 +187,7 @@ class QrackSimulator:
             RuntimeError: QrackSimulator raised an exception.
         """
         pass
+
     def r(self, b, ph, q):
         """Rotation gate.
 
@@ -191,7 +195,7 @@ class QrackSimulator:
 
 
         Args:
-            b: Pauli basis 
+            b: Pauli basis
             ph: rotation angle
             q: the qubit number on which the gate is applied to
 
@@ -340,13 +344,13 @@ class QrackSimulator:
     def mcu(self, c, q, th, ph, la):
         """Multi-controlled arbitraty unitary
 
-        If all controlled qubits are `|1>` then the unitary gate described by 
+        If all controlled qubits are `|1>` then the unitary gate described by
         parameters is applied to the target qubit.
 
         Args:
             c: list of controlled qubits.
             q: target qubit.
-            th: theta 
+            th: theta
             ph: phi
             la: lambda
 
@@ -358,7 +362,7 @@ class QrackSimulator:
     def mcmtrx(self, c, m, q):
         """Multi-controlled arbitraty operator
 
-        If all controlled qubits are `|1>` then the arbitrary operation by 
+        If all controlled qubits are `|1>` then the arbitrary operation by
         parameters is applied to the target qubit.
 
         Args:
@@ -493,13 +497,13 @@ class QrackSimulator:
     def macu(self, c, q, th, ph, la):
         """Anti multi-controlled arbitraty unitary
 
-        If all controlled qubits are `|0>` then the unitary gate described by 
+        If all controlled qubits are `|0>` then the unitary gate described by
         parameters is applied to the target qubit.
 
         Args:
             c: list of controlled qubits.
             q: target qubit.
-            th: theta 
+            th: theta
             ph: phi
             la: lambda
 
@@ -511,7 +515,7 @@ class QrackSimulator:
     def macmtrx(self, c, m, q):
         """Anti multi-controlled arbitraty operator
 
-        If all controlled qubits are `|0>` then the arbitrary operation by 
+        If all controlled qubits are `|0>` then the arbitrary operation by
         parameters is applied to the target qubit.
 
         Args:
@@ -527,7 +531,7 @@ class QrackSimulator:
     def multiplex1_mtrx(self, c, q, m):
         """Multiplex gate
 
-        A multiplex gate with a single target and an arbitrary number of 
+        A multiplex gate with a single target and an arbitrary number of
         controls.
 
         Args:
@@ -541,12 +545,12 @@ class QrackSimulator:
         pass
 
     def mx(self, q):
-        """Multi X-gate 
+        """Multi X-gate
 
         Applies the Pauli “X” operator on all qubits.
 
         Args:
-            q: list of qubits to apply X on. 
+            q: list of qubits to apply X on.
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -554,12 +558,12 @@ class QrackSimulator:
         pass
 
     def my(self, q):
-        """Multi Y-gate 
+        """Multi Y-gate
 
         Applies the Pauli “Y” operator on all qubits.
 
         Args:
-            q: list of qubits to apply Y on. 
+            q: list of qubits to apply Y on.
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -567,12 +571,12 @@ class QrackSimulator:
         pass
 
     def mz(self, q):
-        """Multi Z-gate 
+        """Multi Z-gate
 
         Applies the Pauli “Z” operator on all qubits.
 
         Args:
-            q: list of qubits to apply Z on. 
+            q: list of qubits to apply Z on.
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -582,7 +586,7 @@ class QrackSimulator:
     def mcr(self, b, ph, c, q):
         """Multi-controlled arbitrary rotation.
 
-        If all controlled qubits are `|1>` then the arbitrary rotation by 
+        If all controlled qubits are `|1>` then the arbitrary rotation by
         parameters is applied to the target qubit.
         Applies the Pauli “Z” operator on all qubits.
 
@@ -615,7 +619,7 @@ class QrackSimulator:
 
     def swap(self, qi1, qi2):
         """Swap Gate
-        
+
         Swaps the qubits at two given positions.
 
         Args:
@@ -629,7 +633,7 @@ class QrackSimulator:
 
     def iswap(self, qi1, qi2):
         """Swap Gate with phase.
-        
+
         Swaps the qubits at two given positions.
         If the bits are different then there is additional phase of `i`.
 
@@ -644,7 +648,7 @@ class QrackSimulator:
 
     def adjiswap(self, qi1, qi2):
         """Swap Gate with phase.
-        
+
         Swaps the qubits at two given positions.
         If the bits are different then there is additional phase of `-i`.
 
@@ -659,7 +663,7 @@ class QrackSimulator:
 
     def fsim(self, th, ph, qi1, qi2):
         """Fsim gate.
-        
+
         The 2-qubit “fSim” gate
         Useful in the simulation of particles with fermionic statistics
 
@@ -674,7 +678,7 @@ class QrackSimulator:
 
     def cswap(self, c, qi1, qi2):
         """Controlled-swap Gate
-        
+
         Swaps the qubits at two given positions if the control qubits are `|1>`
 
         Args:
@@ -689,13 +693,532 @@ class QrackSimulator:
 
     def acswap(self, c, qi1, qi2):
         """Anti controlled-swap Gate
-        
+
         Swaps the qubits at two given positions if the control qubits are `|0>`
 
         Args:
             c: list of controlled qubits.
             qi1: First position of qubit.
             qi2: Second position of qubit.
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    # standard operations
+    def m(self, q):
+        """Measurement gate
+
+        Measures the qubit at "q" and returns Boolean value.
+        This operator is not unitary & is probabilistic in nature.
+
+        Args:
+            q: qubit to measure
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            Measurement result.
+        """
+        pass
+
+    def force_m(self, q, r):
+        """Force-Measurement gate
+
+        Acts as if the measurement is applied and the result obtained is `r`
+
+        Args:
+            q: qubit to measure
+            r: the required result
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            Measurement result.
+        """
+        pass
+
+    def m_all(self):
+        """Measure-all gate
+
+        Measures measures all qubits.
+        This operator is not unitary & is probabilistic in nature.
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            Measurement result of all qubits.
+        """
+        pass
+
+    def measure_pauli(self, b, q):
+        """Pauli Measurement gate
+
+        Measures the qubit at "q" with the given pauli basis.
+        This operator is not unitary & is probabilistic in nature.
+
+        Args:
+            b: Pauli basis
+            q: qubit to measure
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            Measurement result.
+        """
+        pass
+
+    def measure_shots(self, q, s):
+        """Multi-shot measurement operator
+
+        Measures the qubit at "q" with the given pauli basis.
+        This operator is not unitary & is probabilistic in nature.
+
+        Args:
+            q: qubit to measure
+            s: number of shots
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            list of measurement result.
+        """
+        pass
+
+    def reset_all(self):
+        """Reset gate
+
+        Resets all gates to `|0>`
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    # arithmetic-logic-unit (ALU)
+    def _split_longs(self, a):
+        """Split operation
+
+        Splits the given integer into 64 bit numbers.
+
+
+        Args:
+            a: number to split
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            list of split numbers.
+        """
+        pass
+
+    def _split_longs_2(self, a, m):
+        """Split simultanoues operation
+
+        Splits 2 integers into same number of 64 bit numbers.
+
+        Args:
+            a: first number to split
+            m: second number to split
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            pair of lists of split numbers.
+        """
+        pass
+
+    def add(self, a, q):
+        """Add integer to qubit
+
+        Adds the given integer to the given set of qubits.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: first number to split
+            q: list of qubits to add the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def sub(self, a, q):
+        """Subtract integer to qubit
+
+        Subtracts the given integer to the given set of qubits.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: first number to split
+            q: list of qubits to subtract the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def adds(self, a, s, q):
+        """Add integer to qubit
+
+        TODO
+        Adds the given integer to the given set of qubits with sign.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: number to add
+            s:
+            q: list of qubits to add the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+
+    def subs(self, a, s, q):
+        """Subtract integer to qubit
+
+        TODO
+        Subtracts the given integer to the given set of qubits with sign.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: number to subtract
+            s:
+            q: list of qubits to subtract the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def mul(self, a, q, o):
+        """Multiplies integer to qubit
+
+        TODO
+        Multiplies the given integer to the given set of qubits.
+        Note that the integer is first split into 64 bit numbers.
+
+        TODO
+        Args:
+            a: number to multiply
+            q: list of qubits to multiply the number
+            o:
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def div(self, a, q, o):
+        """Divides qubit by integer
+
+        TODO
+        Divides the given qubits to the given set of integer.
+        Note that the integer is first split into 64 bit numbers.
+
+        TODO
+        Args:
+            a: number to divide by
+            q: qubits to divide
+            o:
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def muln(self, a, m, q, o):
+        pass
+
+    def divn(self, a, m, q, o):
+        pass
+
+    def pown(self, a, m, q, o):
+        pass
+
+    def mcadd(self, a, c, q):
+        """Controlled-add
+
+        Adds the given integer to the given set of qubits if all controlled
+        qubits are `|1>`.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: number to add.
+            c: list of controlled qubits.
+            q: list of qubits to add the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def mcsub(self, a, c, q):
+        """Controlled-subtract
+
+        Subtracts the given integer to the given set of qubits if all controlled
+        qubits are `|1>`.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: number to subtract.
+            c: list of controlled qubits.
+            q: list of qubits to add the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def mcmul(self, a, c, q, o):
+        """Controlled-multiply
+
+        Multiplies the given integer to the given set of qubits if all controlled
+        qubits are `|1>`.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: number to multiply
+            c: list of controlled qubits.
+            q: list of qubits to add the number
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def mcdiv(self, a, c, q, o):
+        """Controlled-divide.
+
+        Divides the given qubits by the given number if all controlled
+        qubits are `|1>`.
+        Note that the integer is first split into 64 bit numbers.
+
+        Args:
+            a: number to divide by
+            c: list of controlled qubits.
+            q: qubits to divide
+            o:
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def mcmuln(self, a, c, m, q, o):
+        pass
+
+    def mcdivn(self, a, c, m, q, o):
+        pass
+
+    def mcpown(self, a, c, m, q, o):
+        pass
+
+    def lda(self, qi, qv, t):
+        pass
+
+    def adc(self, s, qi, qv, t):
+        pass
+
+    def sbc(self, s, qi, qv, t):
+        pass
+
+    def hash(self, q, t):
+        pass
+
+    # boolean logic gates
+    def qand(self, qi1, qi2, qo):
+        """Logical AND
+
+        Logical AND of 2 qubits whose result is stored in the target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def qor(self, qi1, qi2, qo):
+        """Logical OR
+
+        Logical OR of 2 qubits whose result is stored in the target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def qxor(self, qi1, qi2, qo):
+        """Logical XOR
+
+        Logical exlusive-OR of 2 qubits whose result is stored in the target
+        qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def qnand(self, qi1, qi2, qo):
+        """Logical NAND
+
+        Logical NAND of 2 qubits whose result is stored in the target
+        qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def qnor(self, qi1, qi2, qo):
+        """Logical NOR
+
+        Logical NOR of 2 qubits whose result is stored in the target
+        qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def qxnor(self, qi1, qi2, qo):
+        """Logical XOR
+
+        Logical exlusive-NOR of 2 qubits whose result is stored in the target
+        qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def cland(self, ci, qi, qo):
+        """Classical AND
+
+        Logical AND with one qubit and one classical bit whose result is
+        stored in target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def clor(self, ci, qi, qo):
+        """Classical OR
+
+        Logical OR with one qubit and one classical bit whose result is
+        stored in target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def clxor(self, ci, qi, qo):
+        """Classical XOR
+
+        Logical exlusive-OR with one qubit and one classical bit whose result is
+        stored in target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def clnand(self, ci, qi, qo):
+        """Classical NAND
+
+        Logical NAND with one qubit and one classical bit whose result is
+        stored in target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def clnor(self, ci, qi, qo):
+        """Classical NOR
+
+        Logical NOR with one qubit and one classical bit whose result is
+        stored in target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        pass
+
+    def clxnor(self, ci, qi, qo):
+        """Classical XNOR
+
+        Logical exlusive-NOR with one qubit and one classical bit whose result is
+        stored in target qubit.
+
+        Args:
+            qi1: qubit 1
+            qi2: qubit 2
+            qo: target qubit
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
