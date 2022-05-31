@@ -127,7 +127,9 @@ class QrackSimulator:
         pass
 
     def adjs(self, q):
-        """TODO
+        """Adjoint of S gate
+
+        Applies the gate equivalent to the inverse of S gate.
 
         Args:
             q: the qubit number on which the gate is applied to.
@@ -138,7 +140,9 @@ class QrackSimulator:
         pass
 
     def adjt(self, q):
-        """TODO
+        """Adjoint of T gate
+
+        Applies the gate equivalent to the inverse of T gate.
 
         Args:
             q: the qubit number on which the gate is applied to.
@@ -154,7 +158,8 @@ class QrackSimulator:
         Applies a gate guaranteed to be unitary.
         Spans all possible single bit unitary gates.
 
-        TODO
+        `U(theta, phi, lambda) = RZ(phi + pi/2)RX(theta)RZ(lambda - pi/2)`
+
         Args:
             q: the qubit number on which the gate is applied to.
             th: theta 
@@ -172,7 +177,7 @@ class QrackSimulator:
         Applies arbitrary operation defined by the given matrix.
 
         Args:
-            m: complex matrix which defines the operator.
+            m: row-major complex matrix which defines the operator.
             q: the qubit number on which the gate is applied to.
 
         Raises:
@@ -182,12 +187,13 @@ class QrackSimulator:
     def r(self, b, ph, q):
         """Rotation gate.
 
-        TODO
+        Rotate the qubit along the given pauli basis by the given angle.
+
 
         Args:
-            b: 
-            ph: 
-            q: the qubit number on which the gate is applied to.
+            b: Pauli basis 
+            ph: rotation angle
+            q: the qubit number on which the gate is applied to
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -197,14 +203,14 @@ class QrackSimulator:
     def exp(self, b, ph, q):
         """Arbitrary exponentiation
 
-        exponentiates an arbitrary matrix with coefficient.
+        `exp(b, theta) = e^{i*theta*[b_0 . b_1 ...]}`
+        where `.` is the tensor product.
 
-        CHECK
 
         Args:
-            b: complex matrix which defines the operator.
-            ph: coefficient of exponentiation.
-            q: the qubit number on which the gate is applied to.
+            b: Pauli basis
+            ph: coefficient of exponentiation
+            q: the qubit number on which the gate is applied to
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -304,7 +310,6 @@ class QrackSimulator:
     def mcadjs(self, c, q):
         """Multi-controlled adjs gate
 
-        TODO
         If all controlled qubits are `|1>` then the adjs gate is applied to
         the target qubit.
 
@@ -320,7 +325,6 @@ class QrackSimulator:
     def mcadjt(self, c, q):
         """Multi-controlled adjt gate
 
-        TODO
         If all controlled qubits are `|1>` then the adjt gate is applied to
         the target qubit.
 
@@ -339,7 +343,6 @@ class QrackSimulator:
         If all controlled qubits are `|1>` then the unitary gate described by 
         parameters is applied to the target qubit.
 
-        TODO
         Args:
             c: list of controlled qubits.
             q: target qubit.
@@ -358,11 +361,10 @@ class QrackSimulator:
         If all controlled qubits are `|1>` then the arbitrary operation by 
         parameters is applied to the target qubit.
 
-        TODO
         Args:
-            c: list of controlled qubits.
-            m: complex matrix which defines the operator.
-            q: target qubit.
+            c: list of controlled qubits
+            m: row-major complex matrix which defines the operator
+            q: target qubit
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -461,7 +463,6 @@ class QrackSimulator:
     def macadjs(self, c, q):
         """Anti multi-controlled adjs gate
 
-        TODO
         If all controlled qubits are `|0>` then the adjs gate is applied to
         the target qubit.
 
@@ -477,7 +478,6 @@ class QrackSimulator:
     def macadjt(self, c, q):
         """Anti multi-controlled adjt gate
 
-        TODO
         If all controlled qubits are `|0>` then the adjt gate is applied to
         the target qubit.
 
@@ -496,7 +496,6 @@ class QrackSimulator:
         If all controlled qubits are `|0>` then the unitary gate described by 
         parameters is applied to the target qubit.
 
-        TODO
         Args:
             c: list of controlled qubits.
             q: target qubit.
@@ -515,10 +514,9 @@ class QrackSimulator:
         If all controlled qubits are `|0>` then the arbitrary operation by 
         parameters is applied to the target qubit.
 
-        TODO
         Args:
             c: list of controlled qubits.
-            m: complex matrix which defines the operator.
+            m: row-major complex matrix which defines the operator.
             q: target qubit.
 
         Raises:
@@ -527,13 +525,14 @@ class QrackSimulator:
         pass
 
     def multiplex1_mtrx(self, c, q, m):
-        """
+        """Multiplex gate
 
-        TODO
+        A multiplex gate with a single target and an arbitrary number of 
+        controls.
 
         Args:
             c: list of controlled qubits.
-            m: complex matrix which defines the operator.
+            m: row-major complex matrix which defines the operator.
             q: target qubit.
 
         Raises:
@@ -588,7 +587,7 @@ class QrackSimulator:
         Applies the Pauli “Z” operator on all qubits.
 
         Args:
-            b: complex matrix which defines the operator.
+            b: row-major complex matrix which defines the operator.
             ph: coefficient of exponentiation.
             c: list of controlled qubits.
             q: the qubit number on which the gate is applied to.
@@ -601,12 +600,11 @@ class QrackSimulator:
     def mcexp(self, b, ph, cs, q):
         """Multi-controlled arbitrary exponentiation
 
-        exponentiates an arbitrary matrix with coefficient.
-
-        CHECK
+        If all controlled qubits are `|1>` then the the target qubit is
+        exponentiated an pauli basis basis with coefficient.
 
         Args:
-            b: complex matrix which defines the operator.
+            b: Pauli basis
             ph: coefficient of exponentiation.
             q: the qubit number on which the gate is applied to.
 
@@ -647,7 +645,8 @@ class QrackSimulator:
     def adjiswap(self, qi1, qi2):
         """Swap Gate with phase.
         
-        TODO
+        Swaps the qubits at two given positions.
+        If the bits are different then there is additional phase of `-i`.
 
         Args:
             qi1: First position of qubit.
@@ -661,8 +660,6 @@ class QrackSimulator:
     def fsim(self, th, ph, qi1, qi2):
         """Fsim gate.
         
-        
-        [NEED MORE DESCRIPTION]
         The 2-qubit “fSim” gate
         Useful in the simulation of particles with fermionic statistics
 
