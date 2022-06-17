@@ -1,0 +1,2082 @@
+
+<!DOCTYPE html>
+
+<html lang="python">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QRack_Simulator &#8212; PyQrack v0.16.3 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="PyQrack" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pyqrack.qrack_simulator">
+<span id="qrack-simulator"></span><h1>QRack_Simulator<a class="headerlink" href="#module-pyqrack.qrack_simulator" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pyqrack.qrack_simulator.QrackSimulator">
+<em class="property">class </em><code class="sig-prename descclassname">pyqrack.qrack_simulator.</code><code class="sig-name descname">QrackSimulator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qubitCount</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">cloneSid</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">isSchmidtDecomposeMulti</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">isSchmidtDecompose</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">isStabilizerHybrid</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">isBinaryDecisionTree</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">is1QbFusion</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">isPaged</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">isCpuGpuHybrid</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">isOpenCL</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">isHostPointer</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">pyzxCircuit</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">qiskitCircuit</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interface for all the QRack functionality.</p>
+<dl class="py attribute">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qubitCount">
+<code class="sig-name descname">qubitCount</code><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qubitCount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of qubits that are to be simulated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.sid">
+<code class="sig-name descname">sid</code><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.sid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Corresponding simulator id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.acswap">
+<code class="sig-name descname">acswap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.acswap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti controlled-swap Gate</p>
+<p>Swaps the qubits at two given positions if the control qubits are <cite>|0&gt;</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>qi1</strong> -- First position of qubit.</p></li>
+<li><p><strong>qi2</strong> -- Second position of qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.adc">
+<code class="sig-name descname">adc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qv</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.adc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add with Carry</p>
+<p>Quantum counterpart for ADC from MOS-6502 assembly. <cite>t</cite> must be of
+the length <cite>2 ** len(qi)</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi</strong> -- qubit register for index</p></li>
+<li><p><strong>qv</strong> -- qubit register for value</p></li>
+<li><p><strong>t</strong> -- list of values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add integer to qubit</p>
+<p>Adds the given integer to the given set of qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- first number to split</p></li>
+<li><p><strong>q</strong> -- list of qubits to add the number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.adds">
+<code class="sig-name descname">adds</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.adds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Signed Addition integer to qubit</p>
+<p>Signed Addition of the given integer to the given set of qubits,
+if there is an overflow the resultant will become negative.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to add</p></li>
+<li><p><strong>s</strong> -- qubit to store overflow</p></li>
+<li><p><strong>q</strong> -- list of qubits to add the number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.adjiswap">
+<code class="sig-name descname">adjiswap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.adjiswap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Swap Gate with phase.</p>
+<p>Swaps the qubits at two given positions.
+If the bits are different then there is additional phase of <cite>-i</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- First position of qubit.</p></li>
+<li><p><strong>qi2</strong> -- Second position of qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.adjs">
+<code class="sig-name descname">adjs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.adjs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adjoint of S gate</p>
+<p>Applies the gate equivalent to the inverse of S gate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.adjt">
+<code class="sig-name descname">adjt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.adjt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adjoint of T gate</p>
+<p>Applies the gate equivalent to the inverse of T gate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.allocate_qubit">
+<code class="sig-name descname">allocate_qubit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qid</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.allocate_qubit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allocate Qubit</p>
+<p>Allocate 1 new qubit with the given qubit ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>qid</strong> -- qubit id</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.cland">
+<code class="sig-name descname">cland</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ci</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.cland" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classical AND</p>
+<p>Logical AND with one qubit and one classical bit whose result is
+stored in target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.clnand">
+<code class="sig-name descname">clnand</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ci</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.clnand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classical NAND</p>
+<p>Logical NAND with one qubit and one classical bit whose result is
+stored in target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.clnor">
+<code class="sig-name descname">clnor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ci</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.clnor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classical NOR</p>
+<p>Logical NOR with one qubit and one classical bit whose result is
+stored in target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.clor">
+<code class="sig-name descname">clor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ci</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.clor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classical OR</p>
+<p>Logical OR with one qubit and one classical bit whose result is
+stored in target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.clxnor">
+<code class="sig-name descname">clxnor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ci</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.clxnor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classical XNOR</p>
+<p>Logical exlusive-NOR with one qubit and one classical bit whose result is
+stored in target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.clxor">
+<code class="sig-name descname">clxor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ci</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.clxor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classical XOR</p>
+<p>Logical exlusive-OR with one qubit and one classical bit whose result is
+stored in target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.compose">
+<code class="sig-name descname">compose</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.compose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose qubits</p>
+<p>Compose quantum description of given qubit with the current system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit id</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.cswap">
+<code class="sig-name descname">cswap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.cswap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-swap Gate</p>
+<p>Swaps the qubits at two given positions if the control qubits are <cite>|1&gt;</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>qi1</strong> -- First position of qubit.</p></li>
+<li><p><strong>qi2</strong> -- Second position of qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.decompose">
+<code class="sig-name descname">decompose</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.decompose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decompose system</p>
+<p>Decompose the given qubit out of the system.
+Warning: The qubit subsystem state must be separable, or the behavior
+of this method is undefined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit id</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>State of the systems.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.dispose">
+<code class="sig-name descname">dispose</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.dispose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dispose qubits</p>
+<p>Minimally decompose a set of contiguous bits from the separably
+composed unit, and discard the separable bits.
+Warning: The qubit subsystem state must be separable, or the behavior
+of this method is undefined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>State of the systems.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.div">
+<code class="sig-name descname">div</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.div" title="Permalink to this definition">¶</a></dt>
+<dd><p>Divides qubit by integer</p>
+<p>'Divides' the given qubits by the integer.
+Carry register is required for maintaining the unitary nature of
+operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- integer to divide by</p></li>
+<li><p><strong>q</strong> -- qubits to divide</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.divn">
+<code class="sig-name descname">divn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.divn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modulo Division</p>
+<p>'Modulo Division' of the given set of qubits by the given integer
+Carry register is required for maintaining the unitary nature of
+operation, and must be as long as the input qubit registe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- integer by which qubit will be divided</p></li>
+<li><p><strong>m</strong> -- modulo integer</p></li>
+<li><p><strong>q</strong> -- qubits to divide</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.dump">
+<code class="sig-name descname">dump</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump state vector</p>
+<p>Dump state vector from the selected simulator ID into the callback.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>State vector list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.dump_ids">
+<code class="sig-name descname">dump_ids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.dump_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump all IDs</p>
+<p>Dump all IDs from the selected simulator ID into the callback.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>List of ids</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.exp">
+<code class="sig-name descname">exp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.exp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arbitrary exponentiation</p>
+<p><cite>exp(b, theta) = e^{i*theta*[b_0 . b_1 ...]}</cite>
+where <cite>.</cite> is the tensor product.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>b</strong> -- Pauli basis</p></li>
+<li><p><strong>ph</strong> -- coefficient of exponentiation</p></li>
+<li><p><strong>q</strong> -- the qubit number on which the gate is applied to</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.force_m">
+<code class="sig-name descname">force_m</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">r</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.force_m" title="Permalink to this definition">¶</a></dt>
+<dd><p>Force-Measurement gate</p>
+<p>Acts as if the measurement is applied and the result obtained is <cite>r</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> -- qubit to measure</p></li>
+<li><p><strong>r</strong> -- the required result</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Measurement result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.fsim">
+<code class="sig-name descname">fsim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">th</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.fsim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fsim gate.</p>
+<p>The 2-qubit “fSim” gate
+Useful in the simulation of particles with fermionic statistics</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- First position of qubit.</p></li>
+<li><p><strong>qi2</strong> -- Second position of qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.h">
+<code class="sig-name descname">h</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.h" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies H gate.</p>
+<p>Applies the Hadarmard operator to the qubit at “q.”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.hash">
+<code class="sig-name descname">hash</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hash function</p>
+<p>Replicates the behaviour of LDA without the index register.
+For the operation to be unitary, the entries present in <cite>t</cite> must be
+unique, and the length of <cite>t</cite> must be <cite>2 ** len(qi)</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> -- qubit register for value</p></li>
+<li><p><strong>t</strong> -- list of values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.in_ket">
+<code class="sig-name descname">in_ket</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ket</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.in_ket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set state vector</p>
+<p>Set state vector for the selected simulator ID.
+Warning: State vector is not always the internal representation leading
+to sub-optimal performance of the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ket</strong> -- the state vector to which simulator will be set</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- Not implemented for the given builds.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.iqft">
+<code class="sig-name descname">iqft</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.iqft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse-quantum Fourier Transform</p>
+<p>Applies Inverse-quantum Fourier Transform on the list of qubits
+provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>qs</strong> -- list of qubits</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.iswap">
+<code class="sig-name descname">iswap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.iswap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Swap Gate with phase.</p>
+<p>Swaps the qubits at two given positions.
+If the bits are different then there is additional phase of <cite>i</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- First position of qubit.</p></li>
+<li><p><strong>qi2</strong> -- Second position of qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.joint_ensemble_probability">
+<code class="sig-name descname">joint_ensemble_probability</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.joint_ensemble_probability" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensemble probability</p>
+<p>Find the joint probability for all specified qubits under the
+respective Pauli basis transformations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>b</strong> -- pauli basis</p></li>
+<li><p><strong>q</strong> -- specified qubits</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Expectation value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.lda">
+<code class="sig-name descname">lda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qv</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.lda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load Accumalator</p>
+<p>Quantum counterpart for LDA from MOS-6502 assembly. <cite>t</cite> must be of
+the length <cite>2 ** len(qi)</cite>. It loads each list entry index of t into
+the qi register and each list entry value into the qv register.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi</strong> -- qubit register for index</p></li>
+<li><p><strong>qv</strong> -- qubit register for value</p></li>
+<li><p><strong>t</strong> -- list of values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.m">
+<code class="sig-name descname">m</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.m" title="Permalink to this definition">¶</a></dt>
+<dd><p>Measurement gate</p>
+<p>Measures the qubit at &quot;q&quot; and returns Boolean value.
+This operator is not unitary &amp; is probabilistic in nature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit to measure</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Measurement result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.m_all">
+<code class="sig-name descname">m_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.m_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Measure-all gate</p>
+<p>Measures measures all qubits.
+This operator is not unitary &amp; is probabilistic in nature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Measurement result of all qubits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macadjs">
+<code class="sig-name descname">macadjs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macadjs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled adjs gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the adjs gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macadjt">
+<code class="sig-name descname">macadjt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macadjt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled adjt gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the adjt gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mach">
+<code class="sig-name descname">mach</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled H gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the Hadarmard gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macmtrx">
+<code class="sig-name descname">macmtrx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macmtrx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled arbitraty operator</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the arbitrary operation by
+parameters is applied to the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>m</strong> -- row-major complex matrix which defines the operator.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macs">
+<code class="sig-name descname">macs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled S gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the &quot;S&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mact">
+<code class="sig-name descname">mact</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled T gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the &quot;T&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macu">
+<code class="sig-name descname">macu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">th</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">la</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled arbitraty unitary</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the unitary gate described by
+parameters is applied to the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+<li><p><strong>th</strong> -- theta</p></li>
+<li><p><strong>ph</strong> -- phi</p></li>
+<li><p><strong>la</strong> -- lambda</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macx">
+<code class="sig-name descname">macx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled X gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the target qubit is flipped.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macy">
+<code class="sig-name descname">macy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled Y gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the Pauli &quot;Y&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.macz">
+<code class="sig-name descname">macz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.macz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anti multi-controlled Z gate</p>
+<p>If all controlled qubits are <cite>|0&gt;</cite> then the Pauli &quot;Z&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcadd">
+<code class="sig-name descname">mcadd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcadd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-add</p>
+<p>Adds the given integer to the given set of qubits if all controlled
+qubits are <cite>|1&gt;</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to add.</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- list of qubits to add the number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcadjs">
+<code class="sig-name descname">mcadjs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcadjs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled adjs gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the adjs gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcadjt">
+<code class="sig-name descname">mcadjt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcadjt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled adjt gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the adjt gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcdiv">
+<code class="sig-name descname">mcdiv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcdiv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-divide.</p>
+<p>'Divides' the given qubits by the integer if all controlled
+qubits are <cite>|1&gt;</cite>.
+Carry register is required for maintaining the unitary nature of
+operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to divide by</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- qubits to divide</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcdivn">
+<code class="sig-name descname">mcdivn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcdivn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-divide.</p>
+<p>Modulo division of the given qubits by the given number if all
+controlled qubits are <cite>|1&gt;</cite>.
+Carry register is required for maintaining the unitary nature of
+operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to divide by</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>m</strong> -- modulo number</p></li>
+<li><p><strong>q</strong> -- qubits to divide</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcexp">
+<code class="sig-name descname">mcexp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">cs</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcexp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled arbitrary exponentiation</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the target qubit is
+exponentiated an pauli basis basis with coefficient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>b</strong> -- Pauli basis</p></li>
+<li><p><strong>ph</strong> -- coefficient of exponentiation.</p></li>
+<li><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mch">
+<code class="sig-name descname">mch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled H gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the Hadarmard gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcmtrx">
+<code class="sig-name descname">mcmtrx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcmtrx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled arbitraty operator</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the arbitrary operation by
+parameters is applied to the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits</p></li>
+<li><p><strong>m</strong> -- row-major complex list representing the operator.</p></li>
+<li><p><strong>q</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcmul">
+<code class="sig-name descname">mcmul</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcmul" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-multiply</p>
+<p>Multiplies the given integer to the given set of qubits if all controlled
+qubits are <cite>|1&gt;</cite>.
+Out-of-place register is required to store the resultant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to multiply</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- list of qubits to add the number</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+<li><p><strong>o</strong> -- out-of-place register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcmuln">
+<code class="sig-name descname">mcmuln</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcmuln" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-modulo multiplication</p>
+<p>Modulo multiplication of the given integer to the given set of qubits
+if all controlled qubits are <cite>|1&gt;</cite>.
+Carry register is required for maintaining the unitary nature of
+operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to multiply</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>m</strong> -- modulo number</p></li>
+<li><p><strong>q</strong> -- list of qubits to add the number</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcpown">
+<code class="sig-name descname">mcpown</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcpown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-modulo Power</p>
+<p>Raises the qubit to the power <cite>a</cite> to which <cite>mod m</cite> is applied to if
+all the controlled qubits are set to <cite>|1&gt;</cite>.
+Out-of-place register is required to store the resultant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number in power</p></li>
+<li><p><strong>c</strong> -- control qubits</p></li>
+<li><p><strong>m</strong> -- modulo number</p></li>
+<li><p><strong>q</strong> -- list of qubits to exponentiate</p></li>
+<li><p><strong>o</strong> -- out-of-place register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcr">
+<code class="sig-name descname">mcr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled arbitrary rotation.</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the arbitrary rotation by
+parameters is applied to the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>b</strong> -- Pauli basis</p></li>
+<li><p><strong>ph</strong> -- coefficient of exponentiation.</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcs">
+<code class="sig-name descname">mcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled S gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the &quot;S&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcsub">
+<code class="sig-name descname">mcsub</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcsub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controlled-subtract</p>
+<p>Subtracts the given integer to the given set of qubits if all controlled
+qubits are <cite>|1&gt;</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to subtract.</p></li>
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- list of qubits to add the number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mct">
+<code class="sig-name descname">mct</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled T gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the &quot;T&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcu">
+<code class="sig-name descname">mcu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">th</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">la</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled arbitraty unitary</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the unitary gate described by
+parameters is applied to the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+<li><p><strong>th</strong> -- theta</p></li>
+<li><p><strong>ph</strong> -- phi</p></li>
+<li><p><strong>la</strong> -- lambda</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcx">
+<code class="sig-name descname">mcx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled X gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the target qubit is flipped.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcy">
+<code class="sig-name descname">mcy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled Y gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the Pauli &quot;Y&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mcz">
+<code class="sig-name descname">mcz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mcz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-controlled Z gate</p>
+<p>If all controlled qubits are <cite>|1&gt;</cite> then the Pauli &quot;Z&quot; gate is applied to
+the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.measure_pauli">
+<code class="sig-name descname">measure_pauli</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.measure_pauli" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pauli Measurement gate</p>
+<p>Measures the qubit at &quot;q&quot; with the given pauli basis.
+This operator is not unitary &amp; is probabilistic in nature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>b</strong> -- Pauli basis</p></li>
+<li><p><strong>q</strong> -- qubit to measure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Measurement result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.measure_shots">
+<code class="sig-name descname">measure_shots</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">s</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.measure_shots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-shot measurement operator</p>
+<p>Measures the qubit at &quot;q&quot; with the given pauli basis.
+This operator is not unitary &amp; is probabilistic in nature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> -- list of qubits to measure</p></li>
+<li><p><strong>s</strong> -- number of shots</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of measurement result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mtrx">
+<code class="sig-name descname">mtrx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mtrx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Operation from matrix.</p>
+<p>Applies arbitrary operation defined by the given matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> -- row-major complex list representing the operator.</p></li>
+<li><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mul">
+<code class="sig-name descname">mul</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mul" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multiplies integer to qubit</p>
+<p>Multiplies the given integer to the given set of qubits.
+Carry register is required for maintaining the unitary nature of
+operation, and must be as long as the input qubit register.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to multiply</p></li>
+<li><p><strong>q</strong> -- list of qubits to multiply the number</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.muln">
+<code class="sig-name descname">muln</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.muln" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modulo Multiplication</p>
+<p>Modulo Multiplication of the given integer to the given set of qubits
+Carry register is required for maintaining the unitary nature of
+operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to multiply</p></li>
+<li><p><strong>m</strong> -- modulo number</p></li>
+<li><p><strong>q</strong> -- list of qubits to multiply the number</p></li>
+<li><p><strong>o</strong> -- carry register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.multiplex1_mtrx">
+<code class="sig-name descname">multiplex1_mtrx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">m</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.multiplex1_mtrx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multiplex gate</p>
+<p>A multiplex gate with a single target and an arbitrary number of
+controls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> -- list of controlled qubits.</p></li>
+<li><p><strong>m</strong> -- row-major complex matrix which defines the operator.</p></li>
+<li><p><strong>q</strong> -- target qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mx">
+<code class="sig-name descname">mx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi X-gate</p>
+<p>Applies the Pauli “X” operator on all qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- list of qubits to apply X on.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.my">
+<code class="sig-name descname">my</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.my" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi Y-gate</p>
+<p>Applies the Pauli “Y” operator on all qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- list of qubits to apply Y on.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.mz">
+<code class="sig-name descname">mz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.mz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi Z-gate</p>
+<p>Applies the Pauli “Z” operator on all qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- list of qubits to apply Z on.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.num_qubits">
+<code class="sig-name descname">num_qubits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.num_qubits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get Qubit count</p>
+<p>Returns the qubit count of the simulator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit id</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Qubit count of the simulator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.out_ket">
+<code class="sig-name descname">out_ket</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.out_ket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set state vector</p>
+<p>Returns the raw state vector of the simulator.
+Warning: State vector is not always the internal representation leading
+to sub-optimal performance of the method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> -- Not implemented for the given builds.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list representing the state vector.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.permutation_expectation">
+<code class="sig-name descname">permutation_expectation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">c</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.permutation_expectation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Permutation expectation value</p>
+<p>Get the permutation expectation value, based upon the order of
+input qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>c</strong> -- permutation</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Expectation value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.phase_parity">
+<code class="sig-name descname">phase_parity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">la</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.phase_parity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Phase to odd parity</p>
+<p>Applies <cite>e^(i*la)</cite> phase factor to all combinations of bits with
+odd parity, based upon permutations of qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>la</strong> -- phase</p></li>
+<li><p><strong>q</strong> -- specified qubits</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.pown">
+<code class="sig-name descname">pown</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">o</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.pown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modulo Power</p>
+<p>Raises the qubit to the power <cite>a</cite> to which <cite>mod m</cite> is applied to.
+Out-of-place register is required to store the resultant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number in power</p></li>
+<li><p><strong>m</strong> -- modulo number</p></li>
+<li><p><strong>q</strong> -- list of qubits to exponentiate</p></li>
+<li><p><strong>o</strong> -- out-of-place register</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.prob">
+<code class="sig-name descname">prob</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.prob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Probability of <cite>|1&gt;</cite></p>
+<p>Get the probability that a qubit is in the <cite>|1&gt;</cite> state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit id</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>probability of qubit being in <cite>|1&gt;</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qand">
+<code class="sig-name descname">qand</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logical AND</p>
+<p>Logical AND of 2 qubits whose result is stored in the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qft">
+<code class="sig-name descname">qft</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quantum Fourier Transform</p>
+<p>Applies Quantum Fourier Transform on the list of qubits provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>qs</strong> -- list of qubits</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qnand">
+<code class="sig-name descname">qnand</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qnand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logical NAND</p>
+<p>Logical NAND of 2 qubits whose result is stored in the target
+qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qnor">
+<code class="sig-name descname">qnor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qnor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logical NOR</p>
+<p>Logical NOR of 2 qubits whose result is stored in the target
+qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qor">
+<code class="sig-name descname">qor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logical OR</p>
+<p>Logical OR of 2 qubits whose result is stored in the target qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qxnor">
+<code class="sig-name descname">qxnor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qxnor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logical XOR</p>
+<p>Logical exlusive-NOR of 2 qubits whose result is stored in the target
+qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.qxor">
+<code class="sig-name descname">qxor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em>, <em class="sig-param"><span class="n">qo</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.qxor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logical XOR</p>
+<p>Logical exlusive-OR of 2 qubits whose result is stored in the target
+qubit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- qubit 1</p></li>
+<li><p><strong>qi2</strong> -- qubit 2</p></li>
+<li><p><strong>qo</strong> -- target qubit</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.r">
+<code class="sig-name descname">r</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.r" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotation gate.</p>
+<p>Rotate the qubit along the given pauli basis by the given angle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>b</strong> -- Pauli basis</p></li>
+<li><p><strong>ph</strong> -- rotation angle</p></li>
+<li><p><strong>q</strong> -- the qubit number on which the gate is applied to</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.release">
+<code class="sig-name descname">release</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.release" title="Permalink to this definition">¶</a></dt>
+<dd><p>Release Qubit</p>
+<p>Release qubit given by the given qubit ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- qubit id</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>If the qubit was in <cite>|0&gt;</cite> state with small tolerance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.reset_all">
+<code class="sig-name descname">reset_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.reset_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset gate</p>
+<p>Resets all qubits to <cite>|0&gt;</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.run_pyzx_gates">
+<code class="sig-name descname">run_pyzx_gates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gates</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.run_pyzx_gates" title="Permalink to this definition">¶</a></dt>
+<dd><p>PYZX Gates</p>
+<p>Converts PYZX gates to <cite>QRackSimulator</cite> and immediately executes them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>gates</strong> -- list of PYZX gates</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.s">
+<code class="sig-name descname">s</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.s" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies S gate.</p>
+<p>Applies the 1/4 phase rotation to the qubit at “q.”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.sbc">
+<code class="sig-name descname">sbc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">qi</span></em>, <em class="sig-param"><span class="n">qv</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.sbc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract with Carry</p>
+<p>Quantum counterpart for SBC from MOS-6502 assembly. <cite>t</cite> must be of
+the length <cite>2 ** len(qi)</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi</strong> -- qubit register for index</p></li>
+<li><p><strong>qv</strong> -- qubit register for value</p></li>
+<li><p><strong>t</strong> -- list of values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.set_reactive_separate">
+<code class="sig-name descname">set_reactive_separate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">irs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.set_reactive_separate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set reactive separation option</p>
+<p>If reactive separation is available, then this method turns it off.
+Note that reactive separation is on by default.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>irs</strong> -- is aggresively separable</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.sub">
+<code class="sig-name descname">sub</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.sub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract integer to qubit</p>
+<p>Subtracts the given integer to the given set of qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- first number to split</p></li>
+<li><p><strong>q</strong> -- list of qubits to subtract the number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.subs">
+<code class="sig-name descname">subs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.subs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract integer to qubit</p>
+<p>Subtracts the given integer to the given set of qubits,
+if there is an overflow the resultant will become negative.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> -- number to subtract</p></li>
+<li><p><strong>s</strong> -- qubit to store overflow</p></li>
+<li><p><strong>q</strong> -- list of qubits to subtract the number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.swap">
+<code class="sig-name descname">swap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.swap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Swap Gate</p>
+<p>Swaps the qubits at two given positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- First position of qubit.</p></li>
+<li><p><strong>qi2</strong> -- Second position of qubit.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.t">
+<code class="sig-name descname">t</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.t" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies T gate.</p>
+<p>Applies the 1/8 phase rotation to the qubit at “q.”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.try_separate_1qb">
+<code class="sig-name descname">try_separate_1qb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.try_separate_1qb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manual seperation</p>
+<p>Exposes manual control for schmidt decomposition which attempts to
+decompose the qubit with possible performance improvement</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>qi1</strong> -- qubit to be decomposed</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>State of the qubit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.try_separate_2qb">
+<code class="sig-name descname">try_separate_2qb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qi1</span></em>, <em class="sig-param"><span class="n">qi2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.try_separate_2qb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manual two-qubits seperation</p>
+<p>two-qubits counterpart of <cite>try_separate_1qb</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qi1</strong> -- first qubit to be decomposed</p></li>
+<li><p><strong>qi2</strong> -- second qubit to be decomposed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>Runtimeerror</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>State of both the qubits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.try_separate_tolerance">
+<code class="sig-name descname">try_separate_tolerance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.try_separate_tolerance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manual multi-qubits seperation</p>
+<p>Multi-qubits counterpart of <cite>try_separate_1qb</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> -- list of qubits to be decomposed</p></li>
+<li><p><strong>t</strong> -- allowed tolerance</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>Runtimeerror</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>State of all the qubits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.u">
+<code class="sig-name descname">u</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">th</span></em>, <em class="sig-param"><span class="n">ph</span></em>, <em class="sig-param"><span class="n">la</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.u" title="Permalink to this definition">¶</a></dt>
+<dd><p>General unitary gate.</p>
+<p>Applies a gate guaranteed to be unitary.
+Spans all possible single bit unitary gates.</p>
+<p><cite>U(theta, phi, lambda) = RZ(phi + pi/2)RX(theta)RZ(lambda - pi/2)</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p></li>
+<li><p><strong>th</strong> -- theta</p></li>
+<li><p><strong>ph</strong> -- phi</p></li>
+<li><p><strong>la</strong> -- lambda</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.x">
+<code class="sig-name descname">x</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies X gate.</p>
+<p>Applies the Pauli “X” operator to the qubit at position “q.”
+The Pauli “X” operator is equivalent to a logical “NOT.”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.y">
+<code class="sig-name descname">y</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies Y gate.</p>
+<p>Applies the Pauli “Y” operator to the qubit at “q.”
+The Pauli “Y” operator is equivalent to a logical “NOT&quot; with
+permutation phase.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyqrack.qrack_simulator.QrackSimulator.z">
+<code class="sig-name descname">z</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyqrack.qrack_simulator.QrackSimulator.z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies Z gate.</p>
+<p>Applies the Pauli “Z” operator to the qubit at “q.”
+The Pauli “Z” operator flips the phase of <cite>|1&gt;</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>q</strong> -- the qubit number on which the gate is applied to.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> -- QrackSimulator raised an exception.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">PyQrack</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Introduction</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">QRack_Simulator</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">PyQrack</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Daniel Strano and the Qrack Contributors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/api/qrack_simulator.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

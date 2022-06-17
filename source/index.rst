@@ -12,10 +12,3 @@ An introductory talk to Qrack can be found here `Intro to Qrack: a framework for
     :hidden:
 
     Introduction <self>
-
-.. toctree::
-    :hidden:
-    :caption: API
-    :maxdepth: 2
-
-    api/qrack_simulator
