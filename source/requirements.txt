@@ -1,1 +1,1 @@
-autoapi==2.0.1
+autoapi
