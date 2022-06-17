@@ -23,8 +23,8 @@ from sys import platform as _platform
 class QrackSystem:
     def __init__(self):
         shared_lib_path = "/usr/local/lib/libqrack_pinvoke.so"
-        if os.environ.get("PYQRACK_SHARED_LIB_PATH") != None:
-            shared_lib_path = os.environ.get("PYQRACK_SHARED_LIB_PATH")
+        if os.environ.get('PYQRACK_SHARED_LIB_PATH') != None:
+            shared_lib_path = os.environ.get('PYQRACK_SHARED_LIB_PATH')
         elif _platform == "darwin":
             shared_lib_path = "/usr/local/lib/libqrack_pinvoke.dylib"
         elif _platform == "win32":
@@ -44,7 +44,7 @@ class QrackSystem:
 
         self.fppow = 5
         if "QRACK_FPPOW" in os.environ:
-            self.fppow = int(os.environ.get("QRACK_FPPOW"))
+            self.fppow = int(os.environ.get('QRACK_FPPOW'))
         if self.fppow < 4 or self.fppow > 7:
             raise ValueError(
                 "QRACK_FPPOW environment variable must be an integer >3 and <8. (Qrack builds from 4 for fp16/half, up to 7 for fp128/quad."

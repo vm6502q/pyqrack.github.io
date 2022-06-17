@@ -1219,7 +1219,7 @@ class QrackSimulator:
 
         Multiplies the given integer to the given set of qubits.
         Carry register is required for maintaining the unitary nature of
-        operation, and must be as long as the input qubit register.
+        operation, and must be as long as the input qubit register. 
 
         Args:
             a: number to multiply
@@ -1246,7 +1246,7 @@ class QrackSimulator:
 
         'Divides' the given qubits by the integer.
         Carry register is required for maintaining the unitary nature of
-        operation.
+        operation. 
 
         Args:
             a: integer to divide by
@@ -1273,7 +1273,7 @@ class QrackSimulator:
 
         Modulo Multiplication of the given integer to the given set of qubits
         Carry register is required for maintaining the unitary nature of
-        operation.
+        operation. 
 
         Args:
             a: number to multiply
@@ -1302,7 +1302,7 @@ class QrackSimulator:
 
         'Modulo Division' of the given set of qubits by the given integer
         Carry register is required for maintaining the unitary nature of
-        operation, and must be as long as the input qubit registe.
+        operation, and must be as long as the input qubit registe. 
 
         Args:
             a: integer by which qubit will be divided
@@ -1444,7 +1444,7 @@ class QrackSimulator:
         'Divides' the given qubits by the integer if all controlled
         qubits are `|1>`.
         Carry register is required for maintaining the unitary nature of
-        operation.
+        operation. 
 
         Args:
             a: number to divide by
@@ -1474,7 +1474,7 @@ class QrackSimulator:
         Modulo multiplication of the given integer to the given set of qubits
         if all controlled qubits are `|1>`.
         Carry register is required for maintaining the unitary nature of
-        operation.
+        operation. 
 
         Args:
             a: number to multiply
@@ -1507,7 +1507,7 @@ class QrackSimulator:
         Modulo division of the given qubits by the given number if all
         controlled qubits are `|1>`.
         Carry register is required for maintaining the unitary nature of
-        operation.
+        operation. 
 
         Args:
             a: number to divide by
@@ -1991,7 +1991,7 @@ class QrackSimulator:
         """Decompose system
 
         Decompose the given qubit out of the system.
-        Warning: The qubit subsystem state must be separable, or the behavior
+        Warning: The qubit subsystem state must be separable, or the behavior 
         of this method is undefined.
 
         Args:
@@ -2018,7 +2018,7 @@ class QrackSimulator:
 
         Minimally decompose a set of contiguous bits from the separably
         composed unit, and discard the separable bits.
-        Warning: The qubit subsystem state must be separable, or the behavior
+        Warning: The qubit subsystem state must be separable, or the behavior 
         of this method is undefined.
 
         Args:
@@ -2093,8 +2093,8 @@ class QrackSimulator:
     def in_ket(self, ket):
         """Set state vector
 
-        Set state vector for the selected simulator ID.
-        Warning: State vector is not always the internal representation leading
+        Set state vector for the selected simulator ID. 
+        Warning: State vector is not always the internal representation leading 
         to sub-optimal performance of the method.
 
         Args:
@@ -2116,7 +2116,7 @@ class QrackSimulator:
         """Set state vector
 
         Returns the raw state vector of the simulator.
-        Warning: State vector is not always the internal representation leading
+        Warning: State vector is not always the internal representation leading 
         to sub-optimal performance of the method.
 
         Raises:
