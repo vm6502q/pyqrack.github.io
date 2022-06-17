@@ -19,10 +19,3 @@ An introductory talk to Qrack can be found here `Intro to Qrack: a framework for
     :maxdepth: 2
 
     api/qrack_simulator
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
