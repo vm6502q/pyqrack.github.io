@@ -33,7 +33,6 @@ class QrackSimulator:
         isSchmidtDecompose=True,
         isStabilizerHybrid=True,
         isBinaryDecisionTree=False,
-        is1QbFusion=False,
         isPaged=True,
         isCpuGpuHybrid=True,
         isOpenCL=True,
@@ -45,6 +44,10 @@ class QrackSimulator:
 
         if pyzxCircuit is not None:
             qubitCount = pyzxCircuit.qubits
+        elif qiskitCircuit is not None and qubitCount < 0:
+            raise RuntimeError(
+                "Must specify qubitCount with qiskitCircuit parameter in QrackSimulator constructor!"
+            )
 
         if qubitCount > -1 and cloneSid > -1:
             raise RuntimeError(
@@ -60,7 +63,6 @@ class QrackSimulator:
                 isSchmidtDecompose
                 and isStabilizerHybrid
                 and not isBinaryDecisionTree
-                and not is1QbFusion
                 and isPaged
                 and isCpuGpuHybrid
                 and isOpenCL
@@ -79,7 +81,7 @@ class QrackSimulator:
                     isStabilizerHybrid,
                     isBinaryDecisionTree,
                     isPaged,
-                    is1QbFusion,
+                    False,
                     isCpuGpuHybrid,
                     isOpenCL,
                     isHostPointer,
@@ -92,6 +94,8 @@ class QrackSimulator:
 
         if pyzxCircuit is not None:
             self.run_pyzx_gates(pyzxCircuit.gates)
+        elif qiskitCircuit is not None:
+            self.run_qiskit_circuit(qiskitCircuit)
 
     def __del__(self):
         if self.sid is not None:
@@ -113,6 +117,9 @@ class QrackSimulator:
         if Qrack.fppow < 6:
             return (ctypes.c_float * len(a))(*a)
         return (ctypes.c_double * len(a))(*a)
+
+    def _bool_byref(self, a):
+        return (ctypes.c_bool * len(a))(*a)
 
     def _qrack_complex_byref(self, a):
         t = [(c.real, c.imag) for c in a]
@@ -353,6 +360,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(b) != len(q):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         Qrack.qrack_lib.Exp(
             self.sid,
             len(b),
@@ -835,6 +844,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(b) != len(q):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         Qrack.qrack_lib.MCExp(
             self.sid,
             len(b),
@@ -1024,6 +1035,8 @@ class QrackSimulator:
         Returns:
             Measurement result.
         """
+        if len(b) != len(q):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         result = Qrack.qrack_lib.Measure(
             self.sid, len(b), self._ulonglong_byref(b), self._ulonglong_byref(q)
         )
@@ -1219,7 +1232,7 @@ class QrackSimulator:
 
         Multiplies the given integer to the given set of qubits.
         Carry register is required for maintaining the unitary nature of
-        operation, and must be as long as the input qubit register. 
+        operation and must be as long as the input qubit register.
 
         Args:
             a: number to multiply
@@ -1229,6 +1242,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts = self._split_longs(a)
         Qrack.qrack_lib.MUL(
             self.sid,
@@ -1245,8 +1260,9 @@ class QrackSimulator:
         """Divides qubit by integer
 
         'Divides' the given qubits by the integer.
+        (This is rather the adjoint of mul().)
         Carry register is required for maintaining the unitary nature of
-        operation. 
+        operation.
 
         Args:
             a: integer to divide by
@@ -1256,6 +1272,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts = self._split_longs(a)
         Qrack.qrack_lib.DIV(
             self.sid,
@@ -1272,8 +1290,7 @@ class QrackSimulator:
         """Modulo Multiplication
 
         Modulo Multiplication of the given integer to the given set of qubits
-        Carry register is required for maintaining the unitary nature of
-        operation. 
+        Out-of-place register is required to store the resultant.
 
         Args:
             a: number to multiply
@@ -1284,6 +1301,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts, mParts = self._split_longs_2(a, m)
         Qrack.qrack_lib.MULN(
             self.sid,
@@ -1301,8 +1320,8 @@ class QrackSimulator:
         """Modulo Division
 
         'Modulo Division' of the given set of qubits by the given integer
-        Carry register is required for maintaining the unitary nature of
-        operation, and must be as long as the input qubit registe. 
+        (This is rather the adjoint of muln().)
+        Out-of-place register is required to retrieve the resultant.
 
         Args:
             a: integer by which qubit will be divided
@@ -1313,6 +1332,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts, mParts = self._split_longs_2(a, m)
         Qrack.qrack_lib.DIVN(
             self.sid,
@@ -1341,6 +1362,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts, mParts = self._split_longs_2(a, m)
         Qrack.qrack_lib.POWN(
             self.sid,
@@ -1413,18 +1436,20 @@ class QrackSimulator:
 
         Multiplies the given integer to the given set of qubits if all controlled
         qubits are `|1>`.
-        Out-of-place register is required to store the resultant.
+        Carry register is required for maintaining the unitary nature of
+        operation.
 
         Args:
             a: number to multiply
             c: list of controlled qubits.
             q: list of qubits to add the number
             o: carry register
-            o: out-of-place register
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts = self._split_longs(a)
         Qrack.qrack_lib.MCMUL(
             self.sid,
@@ -1443,8 +1468,9 @@ class QrackSimulator:
 
         'Divides' the given qubits by the integer if all controlled
         qubits are `|1>`.
+        (This is rather the adjoint of mcmul().)
         Carry register is required for maintaining the unitary nature of
-        operation. 
+        operation.
 
         Args:
             a: number to divide by
@@ -1455,6 +1481,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts = self._split_longs(a)
         Qrack.qrack_lib.MCDIV(
             self.sid,
@@ -1473,19 +1501,20 @@ class QrackSimulator:
 
         Modulo multiplication of the given integer to the given set of qubits
         if all controlled qubits are `|1>`.
-        Carry register is required for maintaining the unitary nature of
-        operation. 
+        Out-of-place register is required to store the resultant.
 
         Args:
             a: number to multiply
             c: list of controlled qubits.
             m: modulo number
             q: list of qubits to add the number
-            o: carry register
+            o: out-of-place output register
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts, mParts = self._split_longs_2(a, m)
         Qrack.qrack_lib.MCMULN(
             self.sid,
@@ -1506,8 +1535,8 @@ class QrackSimulator:
 
         Modulo division of the given qubits by the given number if all
         controlled qubits are `|1>`.
-        Carry register is required for maintaining the unitary nature of
-        operation. 
+        (This is rather the adjoint of mcmuln().)
+        Out-of-place register is required to retrieve the resultant.
 
         Args:
             a: number to divide by
@@ -1519,6 +1548,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts, mParts = self._split_longs_2(a, m)
         Qrack.qrack_lib.MCDIVN(
             self.sid,
@@ -1551,6 +1582,8 @@ class QrackSimulator:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(q) != len(o):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         aParts, mParts = self._split_longs_2(a, m)
         Qrack.qrack_lib.MCPOWN(
             self.sid,
@@ -2155,6 +2188,31 @@ class QrackSimulator:
             raise RuntimeError("QrackSimulator C++ library raised exception.")
         return result
 
+    def prob_perm(self, q, c):
+        """Probability of permutation
+
+        Get the probability that the qubit IDs in "q" have the truth values
+        in "c", directly corresponding by vector index.
+
+        Args:
+            q(Vec<u64>): qubit ids
+            c(Vec<bool>): qubit truth values
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            probability that each qubit in "q[i]" has corresponding truth
+            value in "c[i]", at once
+        """
+
+        if len(q) != len(c):
+            raise RuntimeError("prob_perm argument lengths do not match.")
+        result = Qrack.qrack_lib.PermutationProb(self.sid, len(q), self._ulonglong_byref(q), self._bool_byref(c));
+        if self._get_error() != 0:
+            raise RuntimeError("QrackSimulator C++ library raised exception.")
+        return result
+
     def permutation_expectation(self, c):
         """Permutation expectation value
 
@@ -2193,6 +2251,8 @@ class QrackSimulator:
         Returns:
             Expectation value
         """
+        if len(b) != len(q):
+            raise RuntimeError("Lengths of list parameters are mismatched.")
         result = Qrack.qrack_lib.JointEnsembleProbability(
             self.sid, len(b), self._ulonglong_byref(b), q
         )
@@ -2284,7 +2344,7 @@ class QrackSimulator:
     def set_reactive_separate(self, irs):
         """Set reactive separation option
 
-        If reactive separation is available, then this method turns it off.
+        If reactive separation is available, then this method turns it off/on.
         Note that reactive separation is on by default.
 
         Args:
@@ -2294,6 +2354,22 @@ class QrackSimulator:
             RuntimeError: QrackSimulator raised an exception.
         """
         Qrack.qrack_lib.SetReactiveSeparate(self.sid, irs)
+        if self._get_error() != 0:
+            raise RuntimeError("QrackSimulator C++ library raised exception.")
+
+    def set_t_injection(self, iti):
+        """Set t-injection option
+
+        If t-injection is available, then this method turns it off/on.
+        Note that t-injection is on by default.
+
+        Args:
+            iti: use "reverse t-injection gadget"
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        Qrack.qrack_lib.SetTInjection(self.sid, iti)
         if self._get_error() != 0:
             raise RuntimeError("QrackSimulator C++ library raised exception.")
 
