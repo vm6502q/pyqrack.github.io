@@ -13,8 +13,11 @@ class QrackNeuron:
 
     This model of a "quantum neuron" is based on the concept of a "uniformly controlled"
     rotation of a single output qubit around the Pauli Y axis, and has been developed by
-    others. (See https://arxiv.org/abs/quant-ph/0407010 for an introduction to "uniformly
-    controlled" gates, which could also be called single-qubit-target multiplexer gates.)
+    others. In our case, the primary relevant gate could also be called a
+    single-qubit-target multiplexer.
+
+    (See https://arxiv.org/abs/quant-ph/0407010 for an introduction to "uniformly controlled
+    gates.)
 
     QrackNeuron is meant to be interchangeable with a single classical neuron, as in
     conventional neural net software. It differs from classical neurons in conventional
@@ -121,7 +124,7 @@ class QrackNeuron:
 
         "Predict" the anticipated output, based on input and training.
         By default, "predict()" will initialize the output qubit as by
-        reseting to |0> and then acting a Hadamard gate. From that
+        resetting to |0> and then acting a Hadamard gate. From that
         state, the method amends the output qubit upon the basis of
         the state of its input qubits, applying a rotation around
         Pauli Y axis according to the angle learned for the input.
@@ -173,7 +176,8 @@ class QrackNeuron:
 
         "Learn" to associate current inputs with output. Based on
         input qubit states and volatility 'eta,' the input state
-        angle is updated to prefer the "e" ("expected") output.
+        synaptic parameter is updated to prefer the "e" ("expected")
+        output.
 
         Args:
             eta(double): Training volatility, 0 to 1
