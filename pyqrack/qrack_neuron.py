@@ -11,6 +11,11 @@ from .qrack_system import Qrack
 class QrackNeuron:
     """Class that exposes the QNeuron class of Qrack
 
+    This model of a "quantum neuron" is based on the concept of a "uniformly controlled"
+    rotation of a single output qubit around the Pauli Y axis, and has been developed by
+    others. (See https://arxiv.org/abs/quant-ph/0407010 for an introduction to "uniformly
+    controlled" gates, which could also be called single-qubit-target multiplexer gates.)
+
     Attributes:
         nid(int): Qrack ID of this neuron
         simulator(QrackSimulator): Simulator instance for all synaptic clefts of the neuron
