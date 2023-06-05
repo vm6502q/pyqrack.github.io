@@ -16,6 +16,13 @@ try:
 except ImportError:
     _IS_QISKIT_AVAILABLE = False
 
+_IS_QUIMB_AVAILABLE = True
+try:
+    import quimb as qu
+    import quimb.tensor as qtn
+except ImportError:
+    IS_QUIMB_AVAILABLE = False
+
 class QrackCircuit:
     """Class that exposes the QCircuit class of Qrack
 
@@ -79,8 +86,11 @@ class QrackCircuit:
             q: the qubit number on which the gate is applied to.
 
         Raises:
-            RuntimeError: QrackCircuit C++ library raised an exception.
+            ValueError: 2x2 matrix 'm' in QrackCircuit.mtrx() must contain at least 4 elements.
+            RuntimeError: QrackSimulator raised an exception.
         """
+        if len(m) < 4:
+            raise ValueError("2x2 matrix 'm' in QrackCircuit.mtrx() must contain at least 4 elements.")
         Qrack.qrack_lib.qcircuit_append_1qb(self.cid, self._complex_byref(m), q)
 
     def ucmtrx(self, c, m, q, p):
@@ -97,15 +107,11 @@ class QrackCircuit:
             p: permutation of target qubits
 
         Raises:
+            ValueError: 2x2 matrix 'm' in QrackCircuit.ucmtrx() must contain at least 4 elements.
             RuntimeError: QrackSimulator raised an exception.
         """
-
-        p_list = [((p >> i) & 1) for i in range(len(c))]
-        p_list = [x for _, x in sorted(zip(c, p_list))]
-        p = 0
-        for i in range(len(p_list)):
-            p |= p_list[i] << i
-
+        if len(m) < 4:
+            raise ValueError("2x2 matrix 'm' in QrackCircuit.ucmtrx() must contain at least 4 elements.")
         Qrack.qrack_lib.qcircuit_append_mc(
             self.cid, self._complex_byref(m), len(c), self._ulonglong_byref(c), q, p
         )
@@ -122,12 +128,13 @@ class QrackCircuit:
         Raises:
             RuntimeError: QrackCircuit raised an exception.
         """
+        qb_count = self.get_qubit_count()
+        sim_qb_count = qsim.num_qubits()
+        if sim_qb_count < qb_count:
+            for i in range(sim_qb_count, qb_count):
+                qsim.allocate_qubit(i)
         Qrack.qrack_lib.qcircuit_run(self.cid, qsim.sid)
         qsim._throw_if_error()
-
-        qb_count = self.get_qubit_count()
-        if qsim._qubitCount < qb_count:
-            qsim._qubitCount = qb_count
 
     def out_to_file(self, filename):
         """Output optimized circuit to file
@@ -151,7 +158,7 @@ class QrackCircuit:
         """
         Qrack.qrack_lib.qcircuit_in_from_file(self.cid, filename.encode('utf-8'))
 
-    def file_to_qiskit_circut(filename):
+    def file_to_qiskit_circuit(filename):
         """Convert an output file to a Qiskit circuit
 
         Reads in an (optimized) circuit from a file named
@@ -163,7 +170,7 @@ class QrackCircuit:
 
         Raises:
             RuntimeErorr: Before trying to file_to_qiskit_circuit() with
-                QrackCircuit, you must install Qiski, numpy, and math!
+                QrackCircuit, you must install Qiskit, numpy, and math!
         """
         if not _IS_QISKIT_AVAILABLE:
             raise RuntimeError(
@@ -205,39 +212,35 @@ class QrackCircuit:
                     amp = tokens[i].replace("(","").replace(")","").split(',')
                     row.append(float(amp[0]) + float(amp[1])*1j)
                     i = i + 1
-                op[0][0] = row[0]
-                op[0][1] = row[1]
+                l = math.sqrt(np.real(row[0] * np.conj(row[0]) + row[1] * np.conj(row[1])))
+                op[0][0] = row[0] / l
+                op[0][1] = row[1] / l
+
+                if np.abs(op[0][0] - row[0]) > 1e-5:
+                    print("Warning: gate ", str(g), ", payload ", str(j), " might not be unitary!")
+                if np.abs(op[0][1] - row[1]) > 1e-5:
+                    print("Warning: gate ", str(g), ", payload ", str(j), " might not be unitary!")
 
                 row = []
                 for _ in range(2):
                     amp = tokens[i].replace("(","").replace(")","").split(',')
                     row.append(float(amp[0]) + float(amp[1])*1j)
                     i = i + 1
-                op[1][0] = row[0]
-                op[1][1] = row[1]
+                l = math.sqrt(np.real(row[0] * np.conj(row[0]) + row[1] * np.conj(row[1])))
+                op[1][0] = row[0] / l
+                op[1][1] = row[1] / l
 
-                # Qiskit has a lower tolerance for deviation from numerically unitary.
+                ph = np.real(np.log(np.linalg.det(op)) / 1j)
 
-                th = math.acos(np.real(op[0][0])) * 2
-                s = math.sin(th / 2)
-                if s < 1e-6:
-                    ph = np.real(np.log(op[1][1] / math.cos(th / 2)) / 1j) / 2
-                    lm = ph
-                else:
-                    ph = np.real(np.log(op[1][0] / s) / 1j)
-                    lm = np.real(-np.log(op[0][1] / s) / 1j)
+                op[1][0] = -np.exp(1j * ph) * np.conj(op[0][1])
+                op[1][1] = np.exp(1j * ph) * np.conj(op[0][0])
 
-                c = math.cos(th / 2)
-                s = math.sin(th / 2)
-                op3 = np.exp(1j * (ph + lm)) * c
-                if np.abs(op[1][1] - op3) > 1e6:
+                if np.abs(op[1][0] - row[0]) > 1e-5:
+                    print("Warning: gate ", str(g), ", payload ", str(j), " might not be unitary!")
+                if np.abs(op[1][1] - row[1]) > 1e-5:
                     print("Warning: gate ", str(g), ", payload ", str(j), " might not be unitary!")
 
-                op[0][0] = c
-                op[0][1] = -np.exp(1j * lm) * s
-                op[1][0] = np.exp(1j * ph) * s
-                op[1][1] = op3
-
+                # Qiskit has a lower tolerance for deviation from numerically unitary.
                 payloads[key] = np.array(op)
 
             gate_list = []
@@ -261,7 +264,7 @@ class QrackCircuit:
 
         Raises:
             RuntimeErorr: Before trying to file_to_qiskit_circuit() with
-                QrackCircuit, you must install Qiski, numpy, and math!
+                QrackCircuit, you must install Qiskit, numpy, and math!
         """
         if not _IS_QISKIT_AVAILABLE:
             raise RuntimeError(
@@ -273,21 +276,59 @@ class QrackCircuit:
         for gate in circ.data:
             o = gate.operation
             if o.name == "u":
-                th = o.params[0]
-                ph = o.params[1]
-                lm = o.params[2]
+                th = float(o.params[0])
+                ph = float(o.params[1])
+                lm = float(o.params[2])
 
                 c = math.cos(th / 2)
                 s = math.sin(th / 2)
 
-                op = []
-                op.append(c)
-                op.append(-np.exp(1j * lm) * s)
-                op.append(np.exp(1j * ph) * s)
-                op.append(np.exp(1j * (ph + lm)) * c)
-                self.mtrx(op, gate.qubits[0].index)
+                op = [
+                    c + 0j,
+                    -np.exp(1j * lm) * s,
+                    np.exp(1j * ph) * s,
+                    np.exp(1j * (ph + lm)) * c
+                ]
+                self.mtrx(op, circ.find_bit(gate.qubits[0])[0])
             else:
                 ctrls = []
-                for c in gate.qubits[1:]:
-                    ctrls.append(c.index)
-                self.ucmtrx(ctrls, [0, 1, 1, 0], gate.qubits[0].index, 1)
+                for c in gate.qubits[0:1]:
+                    ctrls.append(circ.find_bit(c)[0])
+                self.ucmtrx(ctrls, [0, 1, 1, 0], circ.find_bit(gate.qubits[1])[0], 1)
+
+    def file_to_quimb_circuit(filename):
+        """Convert an output file to a Quimb circuit
+
+        Reads in an (optimized) circuit from a file named
+        according to the "filename" parameter and outputs
+        a Quimb circuit.
+
+        Args:
+            filename: Name of file
+
+        Raises:
+            RuntimeErorr: Before trying to file_to_quimb_circuit() with
+                QrackCircuit, you must install quimb, Qiskit, numpy, and math!
+        """
+        if not _IS_QUIMB_AVAILABLE:
+            raise RuntimeError(
+                "Before trying to file_to_quimb_circuit() with QrackCircuit, you must install quimb, Qiskit, numpy, and math!"
+            )
+
+        qcirc = QrackCircuit.file_to_qiskit_circuit(filename)
+        basis_gates = ["u", "cx"]
+        qcirc = transpile(qcirc, basis_gates=basis_gates, optimization_level=3)
+
+        tcirc = qtn.Circuit(qcirc.num_qubits)
+        for gate in qcirc.data:
+            o = gate.operation
+            if o.name == "u":
+                th = float(o.params[0])
+                ph = float(o.params[1])
+                lm = float(o.params[2])
+
+                tcirc.apply_gate('U3', th, ph, lm, qcirc.find_bit(gate.qubits[0])[0])
+            else:
+                tcirc.apply_gate('CNOT', qcirc.find_bit(gate.qubits[0])[0], qcirc.find_bit(gate.qubits[1])[0])
+
+        return tcirc

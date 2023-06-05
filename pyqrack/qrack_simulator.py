@@ -96,8 +96,6 @@ class QrackSimulator:
 
         self._throw_if_error()
 
-        self._qubitCount = qubitCount
-
         if pyzxCircuit is not None:
             self.run_pyzx_gates(pyzxCircuit.gates)
         elif qiskitCircuit is not None:
@@ -316,8 +314,11 @@ class QrackSimulator:
             q: the qubit number on which the gate is applied to.
 
         Raises:
+            ValueError: 2x2 matrix 'm' in QrackSimulator.mtrx() must contain at least 4 elements.
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(m) < 4:
+            raise ValueError("2x2 matrix 'm' in QrackSimulator.mtrx() must contain at least 4 elements.")
         Qrack.qrack_lib.Mtrx(self.sid, self._complex_byref(m), q)
         self._throw_if_error()
 
@@ -531,8 +532,11 @@ class QrackSimulator:
             q: target qubit
 
         Raises:
+            ValueError: 2x2 matrix 'm' in QrackSimulator.mcmtrx() must contain at least 4 elements.
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(m) < 4:
+            raise ValueError("2x2 matrix 'm' in QrackSimulator.mcmtrx() must contain at least 4 elements.")
         Qrack.qrack_lib.MCMtrx(
             self.sid, len(c), self._ulonglong_byref(c), self._complex_byref(m), q
         )
@@ -704,10 +708,36 @@ class QrackSimulator:
             q: target qubit.
 
         Raises:
+            ValueError: 2x2 matrix 'm' in QrackSimulator.macmtrx() must contain at least 4 elements.
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(m) < 4:
+            raise ValueError("2x2 matrix 'm' in QrackSimulator.macmtrx() must contain at least 4 elements.")
         Qrack.qrack_lib.MACMtrx(
             self.sid, len(c), self._ulonglong_byref(c), self._complex_byref(m), q
+        )
+        self._throw_if_error()
+
+    def ucmtrx(self, c, m, q, p):
+        """Multi-controlled arbitrary operator with arbitrary controls
+
+        If all control qubits match 'p' permutation by bit order, then the arbitrary
+        operation by parameters is applied to the target qubit.
+
+        Args:
+            c: list of control qubits
+            m: row-major complex list representing the operator.
+            q: target qubit
+            p: permutation of list of control qubits
+
+        Raises:
+            ValueError: 2x2 matrix 'm' in QrackSimulator.ucmtrx() must contain at least 4 elements.
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        if len(m) < 4:
+            raise ValueError("2x2 matrix 'm' in QrackSimulator.ucmtrx() must contain at least 4 elements.")
+        Qrack.qrack_lib.UCMtrx(
+            self.sid, len(c), self._ulonglong_byref(c), self._complex_byref(m), q, p
         )
         self._throw_if_error()
 
@@ -723,8 +753,11 @@ class QrackSimulator:
             q: target qubit.
 
         Raises:
+            ValueError: Multiplex matrix 'm' in QrackSimulator.multiplex1_mtrx() must contain at least 4 elements.
             RuntimeError: QrackSimulator raised an exception.
         """
+        if len(m) < ((1 << len(c)) * 4):
+            raise ValueError("Multiplex matrix 'm' in QrackSimulator.multiplex1_mtrx() must contain at least (4 * 2 ** len(c)) elements.")
         Qrack.qrack_lib.Multiplex1Mtrx(
             self.sid, len(c), self._ulonglong_byref(c), q, self._complex_byref(m)
         )
@@ -1933,7 +1966,6 @@ class QrackSimulator:
             RuntimeError: QrackSimulator raised an exception.
         """
         Qrack.qrack_lib.Compose(self.sid, other.sid, self._ulonglong_byref(q))
-        self._qubitCount = self._qubitCount + other._qubitCount
         self._throw_if_error()
 
     def decompose(self, q):
@@ -1956,8 +1988,6 @@ class QrackSimulator:
         Qrack.qrack_lib.destroy(other.sid)
         l = len(q)
         other.sid = Qrack.qrack_lib.Decompose(self.sid, l, self._ulonglong_byref(q))
-        self._qubitCount = self._qubitCount - l
-        other._qubitCount = l
         self._throw_if_error()
         return other
 
@@ -1980,7 +2010,6 @@ class QrackSimulator:
         """
         l = len(q)
         Qrack.qrack_lib.Dispose(self.sid, l, self._ulonglong_byref(q))
-        self._qubitCount = self._qubitCount - l
         self._throw_if_error()
 
     ## miscellaneous
@@ -1994,7 +2023,7 @@ class QrackSimulator:
         """
         global ids_list
         global ids_list_index
-        ids_list = [0] * self._qubitCount
+        ids_list = [0] * self.num_qubits()
         ids_list_index = 0
         Qrack.qrack_lib.DumpIds(self.sid, self.dump_ids_callback)
         return ids_list
@@ -2018,7 +2047,7 @@ class QrackSimulator:
         global state_vec_list
         global state_vec_list_index
         global state_vec_probability
-        state_vec_list = [complex(0, 0)] * (1 << self._qubitCount)
+        state_vec_list = [complex(0, 0)] * (1 << self.num_qubits())
         state_vec_list_index = 0
         state_vec_probability = 0
         Qrack.qrack_lib.Dump(self.sid, self.dump_callback)
@@ -2073,7 +2102,7 @@ class QrackSimulator:
             list representing the state vector.
         """
         if Qrack.fppow == 5 or Qrack.fppow == 6:
-            amp_count = 1 << self._qubitCount
+            amp_count = 1 << self.num_qubits()
             ket = self._qrack_complex_byref([complex(0, 0)] * amp_count)
             Qrack.qrack_lib.OutKet(self.sid, ket)
             if self._get_error() != 0:
@@ -2411,34 +2440,34 @@ class QrackSimulator:
                     return
 
         if (name == 'u1') or (name == 'p'):
-            self._sim.u(operation.qubits[0], 0, 0, operation.params[0])
+            self._sim.u(operation.qubits[0], 0, 0, float(operation.params[0]))
         elif name == 'u2':
             self._sim.u(
                 operation.qubits[0],
                 math.pi / 2,
-                operation.params[0],
-                operation.params[1],
+                float(operation.params[0]),
+                float(operation.params[1]),
             )
         elif (name == 'u3') or (name == 'u'):
             self._sim.u(
                 operation.qubits[0],
-                operation.params[0],
-                operation.params[1],
-                operation.params[2],
+                float(operation.params[0]),
+                float(operation.params[1]),
+                float(operation.params[2]),
             )
         elif name == 'r':
             self._sim.u(
                 operation.qubits[0],
-                operation.params[0],
-                operation.params[1] - math.pi / 2,
-                -operation.params[1] + mathh.pi / 2,
+                float(operation.params[0]),
+                float(operation.params[1]) - math.pi / 2,
+                (-1 * float(operation.params[1])) + math.pi / 2,
             )
         elif name == 'rx':
-            self._sim.r(Pauli.PauliX, operation.params[0], operation.qubits[0])
+            self._sim.r(Pauli.PauliX, float(operation.params[0]), operation.qubits[0])
         elif name == 'ry':
-            self._sim.r(Pauli.PauliY, operation.params[0], operation.qubits[0])
+            self._sim.r(Pauli.PauliY, float(operation.params[0]), operation.qubits[0])
         elif name == 'rz':
-            self._sim.r(Pauli.PauliZ, operation.params[0], operation.qubits[0])
+            self._sim.r(Pauli.PauliZ, float(operation.params[0]), operation.qubits[0])
         elif name == 'h':
             self._sim.h(operation.qubits[0])
         elif name == 'x':
@@ -2467,23 +2496,23 @@ class QrackSimulator:
             self._sim.adjt(operation.qubits[0])
         elif name == 'cu1':
             self._sim.mcu(
-                operation.qubits[0:1], operation.qubits[1], 0, 0, operation.params[0]
+                operation.qubits[0:1], operation.qubits[1], 0, 0, float(operation.params[0])
             )
         elif name == 'cu2':
             self._sim.mcu(
                 operation.qubits[0:1],
                 operation.qubits[1],
                 math.pi / 2,
-                operation.params[0],
-                operation.params[1],
+                float(operation.params[0]),
+                float(operation.params[1]),
             )
         elif (name == 'cu3') or (name == 'cu'):
             self._sim.mcu(
                 operation.qubits[0:1],
                 operation.qubits[1],
-                operation.params[0],
-                operation.params[1],
-                operation.params[2],
+                float(operation.params[0]),
+                float(operation.params[1]),
+                float(operation.params[2]),
             )
         elif name == 'cx':
             self._sim.mcx(operation.qubits[0:1], operation.qubits[1])
@@ -2500,7 +2529,7 @@ class QrackSimulator:
                     1,
                     0,
                     0,
-                    math.cos(operation.params[0]) + 1j * math.sin(operation.params[0]),
+                    math.cos(float(operation.params[0])) + 1j * math.sin(float(operation.params[0])),
                 ],
                 operation.qubits[1],
             )
