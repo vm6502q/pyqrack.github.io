@@ -6,6 +6,7 @@
 import ctypes
 
 from .qrack_system import Qrack
+from .quimb_circuit_type import QuimbCircuitType
 
 _IS_QISKIT_AVAILABLE = True
 try:
@@ -22,6 +23,12 @@ try:
     import quimb.tensor as qtn
 except ImportError:
     _IS_QUIMB_AVAILABLE = False
+
+_IS_TENSORCIRCUIT_AVAILABLE = True
+try:
+    import tensorcircuit as tc
+except ImportError:
+    _IS_TENSORCIRCUIT_AVAILABLE = False
 
 class QrackCircuit:
     """Class that exposes the QCircuit class of Qrack
@@ -147,7 +154,7 @@ class QrackCircuit:
         """
         Qrack.qrack_lib.qcircuit_out_to_file(self.cid, filename.encode('utf-8'))
 
-    def in_from_file(self, filename):
+    def in_from_file(filename):
         """Read in optimized circuit from file
 
         Reads in an (optimized) circuit from a file named
@@ -156,7 +163,10 @@ class QrackCircuit:
         Args:
             filename: Name of file
         """
-        Qrack.qrack_lib.qcircuit_in_from_file(self.cid, filename.encode('utf-8'))
+        out = QrackCircuit()
+        Qrack.qrack_lib.qcircuit_in_from_file(out.cid, filename.encode('utf-8'))
+
+        return out
 
     def file_to_qiskit_circuit(filename):
         """Convert an output file to a Qiskit circuit
@@ -254,7 +264,7 @@ class QrackCircuit:
 
         return circ
 
-    def in_from_qiskit_circuit(self, circ):
+    def in_from_qiskit_circuit(circ):
         """Read a Qiskit circuit into a QrackCircuit
 
         Reads in a circuit from a Qiskit `QuantumCircuit`
@@ -270,6 +280,8 @@ class QrackCircuit:
             raise RuntimeError(
                 "Before trying to file_to_qiskit_circuit() with QrackCircuit, you must install Qiskit, numpy, and math!"
             )
+
+        out = QrackCircuit()
 
         basis_gates = ["u", "cx"]
         circ = transpile(circ, basis_gates=basis_gates, optimization_level=3)
@@ -289,14 +301,25 @@ class QrackCircuit:
                     np.exp(1j * ph) * s,
                     np.exp(1j * (ph + lm)) * c
                 ]
-                self.mtrx(op, circ.find_bit(gate.qubits[0])[0])
+                out.mtrx(op, circ.find_bit(gate.qubits[0])[0])
             else:
                 ctrls = []
                 for c in gate.qubits[0:1]:
                     ctrls.append(circ.find_bit(c)[0])
-                self.ucmtrx(ctrls, [0, 1, 1, 0], circ.find_bit(gate.qubits[1])[0], 1)
+                out.ucmtrx(ctrls, [0, 1, 1, 0], circ.find_bit(gate.qubits[1])[0], 1)
 
-    def file_to_quimb_circuit(filename):
+        return out
+
+    def file_to_quimb_circuit(
+        filename,
+        circuit_type=QuimbCircuitType.Circuit,
+        psi0=None,
+        gate_opts=None,
+        tags=None,
+        psi0_dtype='complex128',
+        psi0_tag='PSI0',
+        bra_site_ind_id='b{}'
+    ):
         """Convert an output file to a Quimb circuit
 
         Reads in an (optimized) circuit from a file named
@@ -305,6 +328,13 @@ class QrackCircuit:
 
         Args:
             filename: Name of file
+            circuit_type: "QuimbCircuitType" enum value specifying type of Quimb circuit
+            psi0: The initial state, assumed to be |00000....0> if not given. The state is always copied and the tag PSI0 added
+            gate_opts: Default keyword arguments to supply to each gate_TN_1D() call during the circuit
+            tags: Tag(s) to add to the initial wavefunction tensors (whether these are propagated to the rest of the circuit’s tensors
+            psi0_dtype: Ensure the initial state has this dtype.
+            psi0_tag: Ensure the initial state has this tag.
+            bra_site_ind_id: Use this to label ‘bra’ site indices when creating certain (mostly internal) intermediate tensor networks.
 
         Raises:
             RuntimeErorr: Before trying to file_to_quimb_circuit() with
@@ -319,7 +349,26 @@ class QrackCircuit:
         basis_gates = ["u", "cx"]
         qcirc = transpile(qcirc, basis_gates=basis_gates, optimization_level=3)
 
-        tcirc = qtn.Circuit(qcirc.num_qubits)
+        tcirc = qtn.Circuit(
+            N=qcirc.num_qubits,
+            psi0=psi0,
+            gate_opts=gate_opts,
+            tags=tags,
+            psi0_dtype=psi0_dtype,
+            psi0_tag=psi0_tag,
+            bra_site_ind_id=bra_site_ind_id
+        ) if circuit_type == QuimbCircuitType.Circuit else (
+            qtn.CircuitDense(N=qcirc.num_qubits, psi0=psi0, gate_opts=gate_opts, tags=tags) if circuit_type == QuimbCircuitType.CircuitDense else
+                qtn.CircuitMPS(
+                    N=qcirc.num_qubits,
+                    psi0=psi0,
+                    gate_opts=gate_opts,
+                    tags=tags,
+                    psi0_dtype=psi0_dtype,
+                    psi0_tag=psi0_tag,
+                    bra_site_ind_id=bra_site_ind_id
+                )
+        )
         for gate in qcirc.data:
             o = gate.operation
             if o.name == "u":
@@ -332,3 +381,61 @@ class QrackCircuit:
                 tcirc.apply_gate('CNOT', qcirc.find_bit(gate.qubits[0])[0], qcirc.find_bit(gate.qubits[1])[0])
 
         return tcirc
+
+    def file_to_tensorcircuit(
+        filename,
+        inputs=None,
+        circuit_params=None,
+        binding_params=None
+    ):
+        """Convert an output file to a TensorCircuit circuit
+
+        Reads in an (optimized) circuit from a file named
+        according to the "filename" parameter and outputs
+        a TensorCircuit circuit.
+
+        Args:
+            filename: Name of file
+            inputs: pass-through to tensorcircuit.Circuit.from_qiskit
+            circuit_params: pass-through to tensorcircuit.Circuit.from_qiskit
+            binding_params: pass-through to tensorcircuit.Circuit.from_qiskit
+
+        Raises:
+            RuntimeErorr: Before trying to file_to_quimb_circuit() with
+                QrackCircuit, you must install quimb, Qiskit, numpy, and math!
+        """
+        if not _IS_TENSORCIRCUIT_AVAILABLE:
+            raise RuntimeError(
+                "Before trying to file_to_tensorcircuit() with QrackCircuit, you must install TensorCircuit, Qiskit, numpy, and math!"
+            )
+
+        qcirc = QrackCircuit.file_to_qiskit_circuit(filename)
+        basis_gates = ["u", "cx"]
+        qcirc = transpile(qcirc, basis_gates=basis_gates, optimization_level=3)
+
+        return tc.Circuit.from_qiskit(qcirc, qcirc.num_qubits, inputs, circuit_params, binding_params)
+
+    def in_from_tensorcircuit(tcirc, enable_instruction = False, enable_inputs = False):
+        """Convert a TensorCircuit circuit to a QrackCircuit
+
+        Accepts a TensorCircuit circuit and outputs an equivalent QrackCircuit
+
+        Args:
+            tcirc: TensorCircuit circuit
+            enable_instruction: whether to also export measurement and reset instructions
+            enable_inputs: whether to also export the inputs
+
+        Raises:
+            RuntimeErorr: Before trying to in_from_tensorcircuit() with
+                QrackCircuit, you must install quimb, Qiskit, numpy, and math!
+        """
+        if not _IS_TENSORCIRCUIT_AVAILABLE:
+            raise RuntimeError(
+                "Before trying to in_from_tensorcircuit() with QrackCircuit, you must install TensorCircuit, Qiskit, numpy, and math!"
+            )
+
+        # Convert from TensorCircuit to Qiskit
+        qcirc = tcirc.to_qiskit(enable_instruction, enable_inputs)
+
+        # Convert to QrackCircuit
+        return QrackCircuit.in_from_qiskit_circuit(qcirc)
