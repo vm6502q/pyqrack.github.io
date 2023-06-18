@@ -18,9 +18,9 @@ No special considerations are necessary to engage this simulation mode: simply r
 
 Output Unitary Clifford+RZ Simulation For Quantum Hardware
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-It is theoretically possible to use the Clifford+RZ improvements of v8.12 to compile for hardware. (`QUnit` "Schmidt decomposition cannot be used over `QStabilizerHybrid`, for this.)
+It is theoretically possible to use the Clifford+RZ improvements of v1.14 to compile for hardware. (`QUnit` "Schmidt decomposition cannot be used over `QStabilizerHybrid`, for this.)
 
-Since v8.13, it is now possible to output `QStabilizerHybrid` state to file, (not while using `QUnit`). This is done with `QrackSimulator.out_to_file(filename)`, on a simulator instance. With `QrackSimulator.file_to_qiskit_circuit(filename)`, we perform the algorithm that follows, to produce a Qiskit circuit. The files have the following format, by line:
+Since v1.15, it is now possible to output `QStabilizerHybrid` state to file, (not while using `QUnit`). This is done with instance method `out_to_file(filename)`, on a simulator instance. With class method `QrackSimulator.file_to_qiskit_circuit(filename)`, we perform the algorithm that follows, to produce a Qiskit circuit. The files have the following format, by line:
 
 [Logical qubit count]
 
