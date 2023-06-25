@@ -4,6 +4,7 @@
 # found in the LICENSE file or at https://opensource.org/licenses/MIT.
 
 import math
+import copy
 import ctypes
 from .qrack_system import Qrack
 from .pauli import Pauli
@@ -11,6 +12,7 @@ from .pauli import Pauli
 _IS_QISKIT_AVAILABLE = True
 try:
     from qiskit.circuit.quantumcircuit import QuantumCircuit
+    from qiskit.compiler import transpile
     from qiskit.qobj.qasm_qobj import QasmQobjExperiment
     from qiskit.quantum_info.operators.symplectic.clifford import Clifford
     from .util import convert_qiskit_circuit_to_qasm_experiment
@@ -2084,16 +2086,10 @@ class QrackSimulator:
             ket: the state vector to which simulator will be set
 
         Raises:
-            RuntimeError: Not implemented for the given builds.
+            RuntimeError: QrackSimulator raised an exception.
         """
-        if Qrack.fppow == 5 or Qrack.fppow == 6:
-            Qrack.qrack_lib.InKet(self.sid, self._qrack_complex_byref(ket))
-            if self._get_error() != 0:
-                raise RuntimeError("QrackSimulator C++ library raised exception.")
-        else:
-            raise NotImplementedError(
-                "QrackSimulator.in_ket() not implemented for builds beside float/fp32 and double/fp64, but it can be overloaded."
-            )
+        Qrack.qrack_lib.InKet(self.sid, self._qrack_complex_byref(ket))
+        self._throw_if_error()
 
     def out_ket(self):
         """Set state vector
@@ -2103,21 +2099,16 @@ class QrackSimulator:
         to sub-optimal performance of the method.
 
         Raises:
-            RuntimeError: Not implemented for the given builds.
+            RuntimeError: QrackSimulator raised an exception.
 
         Returns:
             list representing the state vector.
         """
-        if Qrack.fppow == 5 or Qrack.fppow == 6:
-            amp_count = 1 << self.num_qubits()
-            ket = self._qrack_complex_byref([complex(0, 0)] * amp_count)
-            Qrack.qrack_lib.OutKet(self.sid, ket)
-            if self._get_error() != 0:
-                raise RuntimeError("QrackSimulator C++ library raised exception.")
-            return [complex(r, i) for r, i in self._pairwise(ket)]
-        raise NotImplementedError(
-            "QrackSimulator.out_ket() not implemented for builds beside float/fp32 and double/fp64, but it can be overloaded."
-        )
+        amp_count = 1 << self.num_qubits()
+        ket = self._qrack_complex_byref([complex(0, 0)] * amp_count)
+        Qrack.qrack_lib.OutKet(self.sid, ket)
+        self._throw_if_error()
+        return [complex(r, i) for r, i in self._pairwise(ket)]
 
     def prob(self, q):
         """Probability of `|1>`
@@ -2408,8 +2399,11 @@ class QrackSimulator:
         Args:
             filename: Name of file
         """
+        qb_count = 1
+        with open(filename) as f:
+            qb_count = int(f.readline()[:-1])
         out = QrackSimulator(
-            qubitCount=1,
+            qubitCount=qb_count,
             isSchmidtDecomposeMulti=False,
             isSchmidtDecompose=False,
             isStabilizerHybrid=True,
@@ -2424,7 +2418,7 @@ class QrackSimulator:
 
         return out
 
-    def file_to_qiskit_circuit(filename):
+    def file_to_qiskit_circuit(filename, is_hardware_encoded=False):
         """Convert an output state file to a Qiskit circuit
 
         Reads in an (optimized) circuit from a file named
@@ -2503,19 +2497,221 @@ class QrackSimulator:
             g = g + 1
 
         clifford = Clifford(tableau)
-
         circ = clifford.to_circuit()
+
+        basis_gates = ["h", "x", "y", "z", "sx", "sy", "s", "sdg", "cx", "cy", "cz", "swap", "iswap", "iswap_dg"]
+        try:
+            circ = transpile(circ, basis_gates=basis_gates, optimization_level=3)
+        except:
+            circ = clifford.to_circuit()
+
         for i in range(len(non_clifford_gates)):
             circ.unitary(non_clifford_gates[i], [i])
 
-        ident = np.eye(2)
-        second_ancilla = non_clifford_gates[logical_qubits + 1]
-        if np.all(np.equal(ident, second_ancilla)):
-            # We're "hardware-encoded"
+        if is_hardware_encoded:
             for i in range(logical_qubits, stabilizer_qubits, 2):
                 circ.h(i + 1)
                 circ.cz(i, i + 1)
                 circ.h(i + 1)
+
+        return circ
+
+    def _qunit_step(i, circ, to_cut, state, basis, has_depth):
+        op = circ.data[i].operation
+        qubits = circ.data[i].qubits
+        first_qubit = circ.find_bit(qubits[0])[0]
+        if has_depth[first_qubit]:
+            for q in qubits[1:]:
+                has_depth[circ.find_bit(q)[0]] = True
+            return
+        if len(qubits) == 1:
+            # The overall algorithm might be very sensitive to floating-point error, so check exact equality:
+            is_unitary_phase = ((op.name == "unitary") and (op.params[0][0][1] == 0) and (op.params[0][1][0] == 0))
+            if op.name == "h":
+                basis[first_qubit] = not basis[first_qubit]
+            elif ((not basis[first_qubit]) and (is_unitary_phase or (op.name == "z") or (op.name == "s") or (op.name == "sdg"))) or (basis[first_qubit] and (op.name == "x")):
+                to_cut.append(i)
+            elif ((not basis[first_qubit]) and ((op.name == "x") or (op.name == "y"))) or (basis[first_qubit] and ((op.name == "y") or (op.name == "z"))):
+                state[first_qubit] = not state[first_qubit]
+            else:
+                has_depth[first_qubit] = True
+        elif op.name == "swap":
+            second_qubit = circ.find_bit(qubits[1])[0]
+            has_depth[first_qubit], has_depth[second_qubit] = has_depth[second_qubit], has_depth[first_qubit]
+            state[first_qubit], state[second_qubit] = state[second_qubit], state[first_qubit]
+            basis[first_qubit], basis[second_qubit] = basis[second_qubit], basis[first_qubit]
+            if (not has_depth[first_qubit]) and (not has_depth[second_qubit]) and (state[first_qubit] == state[second_qubit]) and (basis[first_qubit] == basis[second_qubit]):
+                to_cut.append(i)
+        elif not basis[first_qubit] and op.name == "cx":
+            if state[first_qubit]:
+                c = QuantumCircuit(1)
+                c.x(0)
+                instr = c.data[0]
+                instr.qubits = (qubits[1],)
+                circ.data[i] = copy.deepcopy(instr)
+                i -= 1
+            else:
+                to_cut.append(i)
+        else:
+            qc = circ.find_bit(qubits[0])[0]
+            qt = circ.find_bit(qubits[1])[0]
+            has_depth[qc] = True
+            has_depth[qt] = True
+
+    def file_to_optimized_qiskit_circuit(filename):
+        """Convert an output state file to a Qiskit circuit
+
+        Reads in a circuit from a file named according to the "filename"
+        parameter and outputs a 'hyper-optimized' Qiskit circuit that
+        favors maximum reduction in gate count and depth at the potential
+        expense of additional non-Clifford gates. (Ancilla qubits are
+        left included in the output, though they probably have no gates.)
+
+        Args:
+            filename: Name of file
+
+        Raises:
+            RuntimeErorr: Before trying to file_to_qiskit_circuit() with
+                QrackCircuit, you must install Qiskit, numpy, and math!
+        """
+        circ = QrackSimulator.file_to_qiskit_circuit(filename)
+        
+        width = 0
+        with open(filename, "r", encoding="utf-8") as file:
+            width = int(file.readline())
+
+        to_cut = []
+        state = circ.width() * [False]
+        basis = circ.width() * [False]
+        has_depth = circ.width() * [False]
+        for i in range(len(circ.data)):
+            QrackSimulator._qunit_step(i, circ, to_cut, state, basis, has_depth)
+        to_cut.reverse()
+        for i in to_cut:
+            del circ.data[i]
+
+        to_cut = []
+        state = circ.width() * [False]
+        basis = circ.width() * [False]
+        has_depth = (width * [True]) + ((circ.width() - width) * [False])
+        for i in reversed(range(len(circ.data))):
+            QrackSimulator._qunit_step(i, circ, to_cut, state, basis, has_depth)
+        for i in to_cut:
+            del circ.data[i]
+
+        sqrt1_2 = 1 / math.sqrt(2)
+        ident = np.eye(2, dtype=np.complex128)
+        passable_gates = ["unitary", "h", "x", "y", "z", "s", "sdg"]
+
+        for i in range(width, circ.width()):
+            # We might trace out swap, but we want to maintain the iteration order of qubit channels.
+            non_clifford = np.array([[1, 0], [0, 1]], np.complex128)
+            j = len(circ.data) - 1
+            while j >= 0:
+                op = circ.data[j].operation
+                qubits = circ.data[j].qubits
+                q1 = circ.find_bit(qubits[0])[0]
+                if (len(qubits) < 2) and (q1 == i):
+                    if op.name == "unitary":
+                        non_clifford = np.matmul(non_clifford, op.params[0])
+                    elif op.name == "h":
+                        non_clifford = np.matmul(non_clifford, np.array([[sqrt1_2, sqrt1_2], [sqrt1_2, -sqrt1_2]], np.complex128))
+                    elif op.name == "x":
+                        non_clifford = np.matmul(non_clifford, np.array([[0, 1], [1, 0]], np.complex128))
+                    elif op.name == "y":
+                        non_clifford = np.matmul(non_clifford, np.array([[0, -1j], [1j, 0]], np.complex128))
+                    elif op.name == "z":
+                        non_clifford = np.matmul(non_clifford, np.array([[1, 0], [0, -1]], np.complex128))
+                    elif op.name == "s":
+                        non_clifford = np.matmul(non_clifford, np.array([[1, 0], [0, 1j]], np.complex128))
+                    elif op.name == "sdg":
+                        non_clifford = np.matmul(non_clifford, np.array([[1, 0], [0, -1j]], np.complex128))
+                    else:
+                        print("Warning: Something went wrong! (Dropped a single-qubit gate.")
+
+                    del circ.data[j]
+                    j -= 1
+                    continue
+
+                if len(qubits) < 2:
+                    j -= 1
+                    continue
+
+                q2 = circ.find_bit(qubits[1])[0]
+
+                if op.name == "swap":
+                    if i == q1:
+                        i = q2
+                    elif i == q2:
+                        i = q1
+
+                    j -= 1
+                    continue
+
+                # The overall algorithm might be very sensitive to floating-point error, so check exact equality:
+                is_buffer_identity = np.array_equal(non_clifford, ident)
+
+                if (q1 == i) and (op.name == "cx" or op.name == "cy" or op.name == "cz"):
+                    # Either way, we're cutting this gate.
+                    orig_instr = circ.data[j]
+                    del circ.data[j]
+
+                    if is_buffer_identity:
+                        # If we're not buffering anything but post selection, the blocking gate has no effect, and we're safe to continue.
+                        j -= 1
+                        continue
+
+                    h = QuantumCircuit(1)
+                    h.h(0)
+                    instr = h.data[0]
+
+                    # We're replacing CNOT with CNOT in the opposite direction plus four H gates
+                    instr.qubits = (qubits[0],)
+                    circ.data.insert(j, copy.deepcopy(instr))
+                    instr.qubits = (qubits[1],)
+                    circ.data.insert(j, copy.deepcopy(instr))
+                    orig_instr.qubits = (qubits[1], qubits[0])
+                    circ.data.insert(j, copy.deepcopy(orig_instr))
+                    instr.qubits = (qubits[0],)
+                    circ.data.insert(j, copy.deepcopy(instr))
+                    instr.qubits = (qubits[1],)
+                    circ.data.insert(j, copy.deepcopy(instr))
+                    j += 4
+
+                    continue
+
+                if (q1 == i) or (op.name != "cx"):
+                    if is_buffer_identity:
+                        # No buffer content to write to circuit definition
+                        break
+
+                    # We're blocked, so we insert our buffer at this place in the circuit definition.
+                    c = QuantumCircuit(1)
+                    c.unitary(non_clifford, 0)
+                    instr = c.data[0]
+                    instr.qubits = (qubits[0],)
+                    circ.data.insert(j + 1, copy.deepcopy(instr))
+                    break
+
+                if circ.find_bit(qubits[1])[0] == i:
+                    to_inject = np.matmul(non_clifford, np.array([[sqrt1_2, sqrt1_2], [sqrt1_2, -sqrt1_2]]))
+
+                    if np.array_equal(to_inject, ident):
+                        # No buffer content to write to circuit definition
+                        del circ.data[j]
+                        j -= 1
+                        continue
+
+                    c = QuantumCircuit(1)
+                    c.unitary(to_inject, 0)
+                    instr = c.data[0]
+                    instr.qubits = (qubits[0],)
+                    circ.data[j] = copy.deepcopy(instr)
+
+                j -= 1
+
+        basis_gates=["u", "x", "cx", "cy", "cz", "swap", "iswap", "iswap_dg"]
+        circ = transpile(circ, basis_gates=basis_gates, optimization_level=3)
 
         return circ
 
@@ -2610,6 +2806,8 @@ class QrackSimulator:
                 float(operation.params[1]),
                 float(operation.params[2]),
             )
+        elif (name == 'unitary') and (len(operation.qubits) == 1):
+            self._sim.mtrx(operation.params[0].flatten(), operation.qubits[0])
         elif name == 'r':
             self._sim.u(
                 operation.qubits[0],
@@ -2719,6 +2917,8 @@ class QrackSimulator:
             self._sim.swap(operation.qubits[0], operation.qubits[1])
         elif name == 'iswap':
             self._sim.iswap(operation.qubits[0], operation.qubits[1])
+        elif name == 'iswap_dg':
+            self._sim.adjiswap(operation.qubits[0], operation.qubits[1])
         elif name == 'cswap':
             self._sim.cswap(
                 operation.qubits[0:1], operation.qubits[1], operation.qubits[2]
