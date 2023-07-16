@@ -3,14 +3,16 @@
 # Use of this source code is governed by an MIT-style license that can be
 # found in the LICENSE file or at https://opensource.org/licenses/MIT.
 
-import math
 import copy
 import ctypes
+import math
+import re
 from .qrack_system import Qrack
 from .pauli import Pauli
 
 _IS_QISKIT_AVAILABLE = True
 try:
+    from qiskit.circuit import QuantumRegister, Qubit
     from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.compiler import transpile
     from qiskit.qobj.qasm_qobj import QasmQobjExperiment
@@ -2362,22 +2364,23 @@ class QrackSimulator:
         Qrack.qrack_lib.SetTInjection(self.sid, iti)
         self._throw_if_error()
 
-    def set_hardware_encoded(self, she):
-        """Set option to encode t-gadgets for hardware
+    def set_weak_sampling(self, sws):
+        """Set option to allow QStabilizerHybrid to sample weakly.
 
-        If t-injection is on, and we output a stabilizer state to file,
-        this option turns on auxiliary error correction channels, if true,
-        allowing ancilla syndrome correction with mid-ciruit measurement
-        instead of post selection.
-        Note that this encoding option is off by default.
+        If weak sampling is enabled during use of special gate set
+        Clifford+RZ with QStabilizerHybrid, then terminal measurement and
+        sampling approximate the effect of buffered RZ gates with the
+        closest Clifford phase gate, plus a probabilistic 'correction'
+        gate, for difference between requested phase angle and closest
+        Clifford phase transformation.
 
         Args:
-            she: use "stabilizer hardware encoding"
+            sws: use "stabilizer weak sampling"
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
-        Qrack.qrack_lib.SetStabilizerHardwareEncoded(self.sid, she)
+        Qrack.qrack_lib.SetStabilizerWeakSampling(self.sid, she)
         self._throw_if_error()
 
     def out_to_file(self, filename):
@@ -2401,7 +2404,7 @@ class QrackSimulator:
         """
         qb_count = 1
         with open(filename) as f:
-            qb_count = int(f.readline()[:-1])
+            qb_count = int(f.readline())
         out = QrackSimulator(
             qubitCount=qb_count,
             isSchmidtDecomposeMulti=False,
@@ -2443,20 +2446,57 @@ class QrackSimulator:
 
         logical_qubits = int(lines[0])
         stabilizer_qubits = int(lines[1])
-        rows = stabilizer_qubits << 1
 
-        tableau = []
-        for line in lines[2:(rows + 2)]:
-            bits = line.split()
-            row = []
-            for bit in bits:
-                row.append(bool(int(bit)))
-            row[-1] = (int(bits[-1]) >> 1) & 1
-            tableau.append(row)
+        stabilizer_count = int(lines[2])
+
+        reg = QuantumRegister(stabilizer_qubits, name="q")
+        circ_qubits = [Qubit(reg, i) for i in range(stabilizer_qubits)]
+        clifford_circ = QuantumCircuit(reg)
+        line_number = 3
+        for i in range(stabilizer_count):
+            shard_map_size = int(lines[line_number])
+            line_number += 1
+
+            shard_map = {}
+            for j in range(shard_map_size):
+                line = lines[line_number].split()
+                line_number += 1
+                shard_map[int(line[0])] = int(line[1])
+
+            sub_reg = []
+            for index, _ in sorted(shard_map.items(), key=lambda x: x[1]):
+                sub_reg.append(circ_qubits[index])
+
+            line_number += 1
+            tableau = []
+            row_count = shard_map_size << 1
+            for line in lines[line_number:(line_number + row_count)]:
+                bits = line.split()
+                if len(bits) != (row_count + 1):
+                    raise QrackException("Invalid Qrack hybrid stabilizer file!")
+                row = []
+                for b in range(row_count):
+                    row.append(bool(int(bits[b])))
+                row.append(bool((int(bits[-1]) >> 1) & 1))
+                tableau.append(row)
+            line_number += (shard_map_size << 1)
+            tableau = np.array(tableau, bool)
+
+            clifford = Clifford(tableau, validate=False, copy=False)
+            circ = clifford.to_circuit()
+
+            for instr in circ.data:
+                qubits = instr.qubits
+                n_qubits = []
+                for qubit in qubits:
+                    n_qubits.append(sub_reg[circ.find_bit(qubit)[0]])
+                instr.qubits = tuple(n_qubits)
+                clifford_circ.data.append(instr)
+            del circ
 
         non_clifford_gates = []
         g = 0
-        for line in lines[(rows + 2):]:
+        for line in lines[line_number:]:
             i = 0
             tokens = line.split()
             op = np.zeros((2,2), dtype=complex)
@@ -2496,14 +2536,11 @@ class QrackSimulator:
             non_clifford_gates.append(op)
             g = g + 1
 
-        clifford = Clifford(tableau)
-        circ = clifford.to_circuit()
-
         basis_gates = ["h", "x", "y", "z", "sx", "sy", "s", "sdg", "cx", "cy", "cz", "swap", "iswap", "iswap_dg"]
         try:
-            circ = transpile(circ, basis_gates=basis_gates, optimization_level=3)
+            circ = transpile(clifford_circ, basis_gates=basis_gates, optimization_level=3)
         except:
-            circ = clifford.to_circuit()
+            circ = clifford_circ
 
         for i in range(len(non_clifford_gates)):
             circ.unitary(non_clifford_gates[i], [i])
@@ -2515,48 +2552,6 @@ class QrackSimulator:
                 circ.h(i + 1)
 
         return circ
-
-    def _qunit_step(i, circ, to_cut, state, basis, has_depth):
-        op = circ.data[i].operation
-        qubits = circ.data[i].qubits
-        first_qubit = circ.find_bit(qubits[0])[0]
-        if has_depth[first_qubit]:
-            for q in qubits[1:]:
-                has_depth[circ.find_bit(q)[0]] = True
-            return
-        if len(qubits) == 1:
-            # The overall algorithm might be very sensitive to floating-point error, so check exact equality:
-            is_unitary_phase = ((op.name == "unitary") and (op.params[0][0][1] == 0) and (op.params[0][1][0] == 0))
-            if op.name == "h":
-                basis[first_qubit] = not basis[first_qubit]
-            elif ((not basis[first_qubit]) and (is_unitary_phase or (op.name == "z") or (op.name == "s") or (op.name == "sdg"))) or (basis[first_qubit] and (op.name == "x")):
-                to_cut.append(i)
-            elif ((not basis[first_qubit]) and ((op.name == "x") or (op.name == "y"))) or (basis[first_qubit] and ((op.name == "y") or (op.name == "z"))):
-                state[first_qubit] = not state[first_qubit]
-            else:
-                has_depth[first_qubit] = True
-        elif op.name == "swap":
-            second_qubit = circ.find_bit(qubits[1])[0]
-            has_depth[first_qubit], has_depth[second_qubit] = has_depth[second_qubit], has_depth[first_qubit]
-            state[first_qubit], state[second_qubit] = state[second_qubit], state[first_qubit]
-            basis[first_qubit], basis[second_qubit] = basis[second_qubit], basis[first_qubit]
-            if (not has_depth[first_qubit]) and (not has_depth[second_qubit]) and (state[first_qubit] == state[second_qubit]) and (basis[first_qubit] == basis[second_qubit]):
-                to_cut.append(i)
-        elif not basis[first_qubit] and op.name == "cx":
-            if state[first_qubit]:
-                c = QuantumCircuit(1)
-                c.x(0)
-                instr = c.data[0]
-                instr.qubits = (qubits[1],)
-                circ.data[i] = copy.deepcopy(instr)
-                i -= 1
-            else:
-                to_cut.append(i)
-        else:
-            qc = circ.find_bit(qubits[0])[0]
-            qt = circ.find_bit(qubits[1])[0]
-            has_depth[qc] = True
-            has_depth[qt] = True
 
     def file_to_optimized_qiskit_circuit(filename):
         """Convert an output state file to a Qiskit circuit
@@ -2580,29 +2575,107 @@ class QrackSimulator:
         with open(filename, "r", encoding="utf-8") as file:
             width = int(file.readline())
 
-        to_cut = []
-        state = circ.width() * [False]
-        basis = circ.width() * [False]
-        has_depth = circ.width() * [False]
-        for i in range(len(circ.data)):
-            QrackSimulator._qunit_step(i, circ, to_cut, state, basis, has_depth)
-        to_cut.reverse()
-        for i in to_cut:
-            del circ.data[i]
-
-        to_cut = []
-        state = circ.width() * [False]
-        basis = circ.width() * [False]
-        has_depth = (width * [True]) + ((circ.width() - width) * [False])
-        for i in reversed(range(len(circ.data))):
-            QrackSimulator._qunit_step(i, circ, to_cut, state, basis, has_depth)
-        for i in to_cut:
-            del circ.data[i]
-
         sqrt1_2 = 1 / math.sqrt(2)
         ident = np.eye(2, dtype=np.complex128)
         passable_gates = ["unitary", "h", "x", "y", "z", "s", "sdg"]
 
+        passed_swaps = []
+        for i in range(0, circ.width()):
+            # We might trace out swap, but we want to maintain the iteration order of qubit channels.
+            non_clifford = np.array([[1, 0], [0, 1]], np.complex128)
+            j = 0
+            while j < len(circ.data):
+                op = circ.data[j].operation
+                qubits = circ.data[j].qubits
+                q1 = circ.find_bit(qubits[0])[0]
+                if (len(qubits) < 2) and (q1 == i):
+                    if op.name == "unitary":
+                        non_clifford = np.matmul(op.params[0], non_clifford)
+                    elif op.name == "h":
+                        non_clifford = np.matmul(np.array([[sqrt1_2, sqrt1_2], [sqrt1_2, -sqrt1_2]], np.complex128), non_clifford)
+                    elif op.name == "x":
+                        non_clifford = np.matmul(np.array([[0, 1], [1, 0]], np.complex128), non_clifford)
+                    elif op.name == "y":
+                        non_clifford = np.matmul(np.array([[0, -1j], [1j, 0]], np.complex128), non_clifford)
+                    elif op.name == "z":
+                        non_clifford = np.matmul(np.array([[1, 0], [0, -1]], np.complex128), non_clifford)
+                    elif op.name == "s":
+                        non_clifford = np.matmul(np.array([[1, 0], [0, 1j]], np.complex128), non_clifford)
+                    elif op.name == "sdg":
+                        non_clifford = np.matmul(np.array([[1, 0], [0, -1j]], np.complex128), non_clifford)
+                    else:
+                        print("Warning: Something went wrong! (Dropped a single-qubit gate.")
+
+                    del circ.data[j]
+                    continue
+
+                if len(qubits) < 2:
+                    j += 1
+                    continue
+
+                q2 = circ.find_bit(qubits[1])[0]
+
+                if op.name == "swap":
+                    if i == q1:
+                        i = q2
+                    elif i == q2:
+                        i = q1
+
+                    if (i == q1) or (i == q2):
+                        if circ.data[j] in passed_swaps:
+                            del circ.data[j]
+                            continue
+
+                        passed_swaps.append(circ.data[j])
+
+                    j += 1
+                    continue 
+
+                if (q1 == i) and (op.name == "cx" or op.name == "cy" or op.name == "cz"):
+                    if (np.isclose(np.abs(non_clifford[0][0]), 1) and np.isclose(np.abs(non_clifford[1][1]), 1) and
+                        np.isclose(np.abs(non_clifford[0][1]), 0) and np.isclose(np.abs(non_clifford[1][0]), 0)):
+                        # If we're not buffering anything but phase, the blocking gate has no effect, and we're safe to continue.
+                        del circ.data[j]
+                        continue
+
+                    if (np.isclose(np.abs(non_clifford[0][0]), 0) and np.isclose(np.abs(non_clifford[1][1]), 0) and
+                        np.isclose(np.abs(non_clifford[0][1]), 1) and np.isclose(np.abs(non_clifford[1][0]), 1)):
+                        c = QuantumCircuit(1)
+                        if op.name == "cx":
+                            c.x(0)
+                        elif op.name == "cy":
+                            c.y(0)
+                        else:
+                            c.z(0)
+                        instr = c.data[0]
+                        instr.qubits = (qubits[1],)
+                        circ.data[j] = copy.deepcopy(instr)
+
+                        j += 1
+                        continue
+
+                if (q1 == i) or (q2 == i) or (op.name != "cx"):
+                    if np.allclose(non_clifford, ident):
+                        # No buffer content to write to circuit definition
+                        non_clifford = ident
+                        break
+
+                    # We're blocked, so we insert our buffer at this place in the circuit definition.
+                    c = QuantumCircuit(1)
+                    c.unitary(non_clifford, 0)
+                    instr = c.data[0]
+                    instr.qubits = (qubits[0],)
+                    circ.data.insert(j, copy.deepcopy(instr))
+                    non_clifford = ident
+                    break
+
+                j += 1
+
+            if (j == len(circ.data)) and (i < width) and not np.allclose(non_clifford, ident):
+                # We're at the end of the wire, so add the buffer gate.
+                circ.unitary(non_clifford, i)
+
+        passed_swaps = []
         for i in range(width, circ.width()):
             # We might trace out swap, but we want to maintain the iteration order of qubit channels.
             non_clifford = np.array([[1, 0], [0, 1]], np.complex128)
@@ -2645,19 +2718,23 @@ class QrackSimulator:
                     elif i == q2:
                         i = q1
 
+                    if ((i == q1) or (i == q2)) and (q1 >= width) and (q2 >= width):
+                        if circ.data[j] in passed_swaps:
+                            del circ.data[j]
+                        else:
+                            passed_swaps.append(circ.data[j])
+
                     j -= 1
                     continue
-
-                # The overall algorithm might be very sensitive to floating-point error, so check exact equality:
-                is_buffer_identity = np.array_equal(non_clifford, ident)
 
                 if (q1 == i) and (op.name == "cx" or op.name == "cy" or op.name == "cz"):
                     # Either way, we're cutting this gate.
                     orig_instr = circ.data[j]
                     del circ.data[j]
 
-                    if is_buffer_identity:
-                        # If we're not buffering anything but post selection, the blocking gate has no effect, and we're safe to continue.
+                    if (np.isclose(np.abs(non_clifford[0][0]), 1) and np.isclose(np.abs(non_clifford[1][1]), 1) and
+                        np.isclose(np.abs(non_clifford[0][1]), 0) and np.isclose(np.abs(non_clifford[1][0]), 0)):
+                        # If we're not buffering anything but phase, the blocking gate has no effect, and we're safe to continue.
                         j -= 1
                         continue
 
@@ -2681,7 +2758,7 @@ class QrackSimulator:
                     continue
 
                 if (q1 == i) or (op.name != "cx"):
-                    if is_buffer_identity:
+                    if np.allclose(non_clifford, ident):
                         # No buffer content to write to circuit definition
                         break
 
@@ -2693,10 +2770,10 @@ class QrackSimulator:
                     circ.data.insert(j + 1, copy.deepcopy(instr))
                     break
 
-                if circ.find_bit(qubits[1])[0] == i:
+                if q2 == i:
                     to_inject = np.matmul(non_clifford, np.array([[sqrt1_2, sqrt1_2], [sqrt1_2, -sqrt1_2]]))
 
-                    if np.array_equal(to_inject, ident):
+                    if np.allclose(to_inject, ident):
                         # No buffer content to write to circuit definition
                         del circ.data[j]
                         j -= 1
@@ -2712,6 +2789,19 @@ class QrackSimulator:
 
         basis_gates=["u", "x", "cx", "cy", "cz", "swap", "iswap", "iswap_dg"]
         circ = transpile(circ, basis_gates=basis_gates, optimization_level=3)
+
+        #Eliminate unused ancillae
+        qasm = circ.qasm()
+        qasm = qasm.replace("qreg q[" + str(circ.width()) + "];", "qreg q[" + str(width) + "];")
+        highest_index = max([int(x) for x in re.findall(r"\[(.*?)\]", qasm) if x.isdigit()])
+        if highest_index != width:
+            qasm = qasm.replace("qreg q[" + str(width) + "];", "qreg q[" + str(highest_index) + "];")
+
+        orig_circ = circ
+        try:
+            circ = QuantumCircuit.from_qasm_str(qasm)
+        except:
+            circ = orig_circ
 
         return circ
 
