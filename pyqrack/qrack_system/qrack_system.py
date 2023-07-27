@@ -131,8 +131,19 @@ class QrackSystem:
         self.qrack_lib.Prob.restype = c_double
         self.qrack_lib.Prob.argtypes = [c_ulonglong, c_ulonglong]
 
+        self.qrack_lib.ProbRdm.restype = c_double
+        self.qrack_lib.ProbRdm.argtypes = [c_ulonglong, c_ulonglong]
+
         self.qrack_lib.PermutationProb.restype = c_double
         self.qrack_lib.PermutationProb.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            POINTER(c_bool)
+        ]
+
+        self.qrack_lib.PermutationProbRdm.restype = c_double
+        self.qrack_lib.PermutationProbRdm.argtypes = [
             c_ulonglong,
             c_ulonglong,
             POINTER(c_ulonglong),
@@ -144,6 +155,14 @@ class QrackSystem:
             c_ulonglong,
             c_ulonglong,
             POINTER(c_ulonglong),
+        ]
+
+        self.qrack_lib.PermutationExpectationRdm.restype = c_double
+        self.qrack_lib.PermutationExpectationRdm.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            c_bool
         ]
 
         self.qrack_lib.JointEnsembleProbability.restype = c_double
@@ -923,10 +942,13 @@ class QrackSystem:
         self.qrack_lib.qneuron_learn_permutation.argtypes = [c_ulonglong, c_double, c_bool, c_bool]
 
         self.qrack_lib.init_qcircuit.restype = c_ulonglong
-        self.qrack_lib.init_qcircuit.argtypes = []
+        self.qrack_lib.init_qcircuit.argtypes = [c_bool]
 
         self.qrack_lib.init_qcircuit_clone.restype = c_ulonglong
         self.qrack_lib.init_qcircuit_clone.argtypes = [c_ulonglong]
+
+        self.qrack_lib.qcircuit_inverse.restype = c_ulonglong
+        self.qrack_lib.qcircuit_inverse.argtypes = [c_ulonglong]
 
         self.qrack_lib.destroy_qcircuit.restype = None
         self.qrack_lib.destroy_qcircuit.argtypes = [c_ulonglong]
