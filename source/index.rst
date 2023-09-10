@@ -1,5 +1,5 @@
 PyQrack
-=================
+=======
 
 Introduction
 ------------
@@ -8,7 +8,7 @@ Introduction
 An introductory talk to Qrack can be found here `Intro to Qrack: a framework for fast quantum simulation by Daniel Strano | Quantum Software Talks <https://www.youtube.com/watch?v=yxyqJDC4SUo>`_.
 
 Hardware Compilation
----------------
+--------------------
 
 Efficient Unitary Clifford+RZ Simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
