@@ -22,25 +22,41 @@ from sys import platform as _platform
 
 class QrackSystem:
     def __init__(self):
-        shared_lib_path = "/usr/local/lib/libqrack_pinvoke.so"
+        shared_lib_path = ""
         if os.environ.get('PYQRACK_SHARED_LIB_PATH') != None:
             shared_lib_path = os.environ.get('PYQRACK_SHARED_LIB_PATH')
-        elif _platform == "darwin":
-            shared_lib_path = "/usr/local/lib/libqrack_pinvoke.dylib"
         elif _platform == "win32":
-            shared_lib_path = "C:\\Program Files\\Qrack\\bin\\qrack_pinvoke.dll"
-        elif _platform != "linux" and _platform != "linux2":
-            print(
-                "No Qrack binary for your platform, attempting to use /usr/local/lib/libqrack_pinvoke.so"
-            )
-            print(
-                "You can choose the binary file to load with the environment variable: PYQRACK_SHARED_LIB_PATH"
-            )
+            shared_lib_path = os.path.dirname(__file__) + "/qrack_lib/qrack_pinvoke.dll"
+        elif _platform == "darwin":
+            shared_lib_path = os.path.dirname(__file__) + "/qrack_lib/libqrack_pinvoke.dylib"
+        else:
+            shared_lib_path = os.path.dirname(__file__) + "/qrack_lib/libqrack_pinvoke.so"
 
         try:
             self.qrack_lib = CDLL(shared_lib_path)
         except Exception as e:
-            print(e)
+            if _platform == "win32":
+                shared_lib_path = "C:/Program Files/libqrack*/lib/qrack_pinvoke.lib"
+            elif _platform == "darwin":
+                shared_lib_path = "/usr/local/lib/qrack/libqrack_pinvoke.dylib"
+            else:
+                shared_lib_path = "/usr/local/lib/qrack/libqrack_pinvoke.so"
+
+            try:
+                self.qrack_lib = CDLL(shared_lib_path)
+            except Exception as e:
+                if _platform == "win32":
+                    shared_lib_path = "C:/Program Files (x86)/libqrack*/lib/qrack_pinvoke.lib"
+                elif _platform == "darwin":
+                    shared_lib_path = "/usr/lib/qrack/libqrack_pinvoke.dylib"
+                else:
+                    shared_lib_path = "/usr/lib/qrack/libqrack_pinvoke.so"
+
+                try:
+                    self.qrack_lib = CDLL(shared_lib_path)
+                except Exception as e:
+                    print("IMPORTANT: Did you remember to install OpenCL, if your Qrack version was built with OpenCL?")
+                    raise e
 
         self.fppow = 5
         if "QRACK_FPPOW" in os.environ:
@@ -66,13 +82,16 @@ class QrackSystem:
         # These next two methods need to have c_double pointers, if PyQrack is built with fp64.
         self.qrack_lib.InKet.restype = None
         self.qrack_lib.OutKet.restype = None
+        self.qrack_lib.OutProbs.restype = None
 
         if self.fppow < 6:
             self.qrack_lib.InKet.argtypes = [c_ulonglong, POINTER(c_float)]
             self.qrack_lib.OutKet.argtypes = [c_ulonglong, POINTER(c_float)]
+            self.qrack_lib.OutProbs.argtypes = [c_ulonglong, POINTER(c_float)]
         else:
             self.qrack_lib.InKet.argtypes = [c_ulonglong, POINTER(c_double)]
             self.qrack_lib.OutKet.argtypes = [c_ulonglong, POINTER(c_double)]
+            self.qrack_lib.OutProbs.argtypes = [c_ulonglong, POINTER(c_double)]
 
         self.qrack_lib.init.restype = c_ulonglong
         self.qrack_lib.init.argtypes = []
@@ -114,6 +133,22 @@ class QrackSystem:
         self.qrack_lib.set_concurrency.argtypes = [c_ulonglong, c_ulonglong]
 
         # pseudo-quantum
+
+        self.qrack_lib.ProbAll.restype = None
+        if self.fppow == 5:
+            self.qrack_lib.ProbAll.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float)
+            ]
+        elif self.fppow == 6:
+            self.qrack_lib.ProbAll.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double)
+            ]
 
         self.qrack_lib.Prob.restype = c_double
         self.qrack_lib.Prob.argtypes = [c_ulonglong, c_ulonglong]
@@ -180,7 +215,6 @@ class QrackSystem:
                 POINTER(c_ulonglong),
                 POINTER(c_float)
             ]
-
             self.qrack_lib.FactorizedExpectationFpRdm.restype = c_double
             self.qrack_lib.FactorizedExpectationFpRdm.argtypes = [
                 c_ulonglong,
@@ -188,6 +222,36 @@ class QrackSystem:
                 POINTER(c_ulonglong),
                 POINTER(c_float),
                 c_bool
+            ]
+            self.qrack_lib.UnitaryExpectation.restype = c_double
+            self.qrack_lib.UnitaryExpectation.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.MatrixExpectation.restype = c_double
+            self.qrack_lib.MatrixExpectation.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.UnitaryExpectationEigenVal.restype = c_double
+            self.qrack_lib.UnitaryExpectationEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.MatrixExpectationEigenVal.restype = c_double
+            self.qrack_lib.MatrixExpectationEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float),
+                POINTER(c_float)
             ]
         elif self.fppow == 6:
             self.qrack_lib.FactorizedExpectationFp.restype = c_double
@@ -197,7 +261,6 @@ class QrackSystem:
                 POINTER(c_ulonglong),
                 POINTER(c_double)
             ]
-
             self.qrack_lib.FactorizedExpectationFpRdm.restype = c_double
             self.qrack_lib.FactorizedExpectationFpRdm.argtypes = [
                 c_ulonglong,
@@ -206,6 +269,179 @@ class QrackSystem:
                 POINTER(c_double),
                 c_bool
             ]
+            self.qrack_lib.UnitaryExpectation.restype = c_double
+            self.qrack_lib.UnitaryExpectation.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.MatrixExpectation.restype = c_double
+            self.qrack_lib.MatrixExpectation.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.UnitaryExpectationEigenVal.restype = c_double
+            self.qrack_lib.UnitaryExpectationEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.MatrixExpectationEigenVal.restype = c_double
+            self.qrack_lib.MatrixExpectationEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double),
+                POINTER(c_double)
+            ]
+
+        self.qrack_lib.PauliExpectation.restype = c_double
+        self.qrack_lib.PauliExpectation.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            POINTER(c_ulonglong)
+        ]
+
+        self.qrack_lib.Variance.restype = c_double
+        self.qrack_lib.Variance.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong)
+        ]
+
+        self.qrack_lib.VarianceRdm.restype = c_double
+        self.qrack_lib.VarianceRdm.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            c_bool
+        ]
+
+        self.qrack_lib.FactorizedVariance.restype = c_double
+        self.qrack_lib.FactorizedVariance.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            c_ulonglong,
+            POINTER(c_ulonglong)
+        ]
+
+        self.qrack_lib.FactorizedVarianceRdm.restype = c_double
+        self.qrack_lib.FactorizedVarianceRdm.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            c_bool
+        ]
+
+        if self.fppow == 5:
+            self.qrack_lib.FactorizedVarianceFp.restype = c_double
+            self.qrack_lib.FactorizedVarianceFp.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.FactorizedVarianceFpRdm.restype = c_double
+            self.qrack_lib.FactorizedVarianceFpRdm.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float),
+                c_bool
+            ]
+            self.qrack_lib.UnitaryVariance.restype = c_double
+            self.qrack_lib.UnitaryVariance.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.MatrixVariance.restype = c_double
+            self.qrack_lib.MatrixVariance.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.UnitaryVarianceEigenVal.restype = c_double
+            self.qrack_lib.UnitaryVarianceEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float),
+                POINTER(c_float)
+            ]
+            self.qrack_lib.MatrixVarianceEigenVal.restype = c_double
+            self.qrack_lib.MatrixVarianceEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_float),
+                POINTER(c_float)
+            ]
+        elif self.fppow == 6:
+            self.qrack_lib.FactorizedVarianceFp.restype = c_double
+            self.qrack_lib.FactorizedVarianceFp.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.FactorizedVarianceFpRdm.restype = c_double
+            self.qrack_lib.FactorizedVarianceFpRdm.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double),
+                c_bool
+            ]
+            self.qrack_lib.UnitaryVariance.restype = c_double
+            self.qrack_lib.UnitaryVariance.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.MatrixVariance.restype = c_double
+            self.qrack_lib.MatrixVariance.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.UnitaryVarianceEigenVal.restype = c_double
+            self.qrack_lib.UnitaryVarianceEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double),
+                POINTER(c_double)
+            ]
+            self.qrack_lib.MatrixVarianceEigenVal.restype = c_double
+            self.qrack_lib.MatrixVarianceEigenVal.argtypes = [
+                c_ulonglong,
+                c_ulonglong,
+                POINTER(c_ulonglong),
+                POINTER(c_double),
+                POINTER(c_double)
+            ]
+
+        self.qrack_lib.PauliVariance.restype = c_double
+        self.qrack_lib.PauliVariance.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+            POINTER(c_ulonglong)
+        ]
 
         self.qrack_lib.JointEnsembleProbability.restype = c_double
         self.qrack_lib.JointEnsembleProbability.argtypes = [
@@ -219,6 +455,14 @@ class QrackSystem:
         self.qrack_lib.PhaseParity.argtypes = [
             c_ulonglong,
             c_double,
+            c_ulonglong,
+            POINTER(c_ulonglong)
+        ]
+
+        self.qrack_lib.PhaseRootN.restype = None
+        self.qrack_lib.PhaseRootN.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
             c_ulonglong,
             POINTER(c_ulonglong)
         ]
@@ -922,11 +1166,17 @@ class QrackSystem:
         self.qrack_lib.SetSdrp.restype = None
         self.qrack_lib.SetSdrp.argtypes = [c_ulonglong, c_double]
 
+        self.qrack_lib.SetNcrp.restype = None
+        self.qrack_lib.SetNcrp.argtypes = [c_ulonglong, c_double]
+
         self.qrack_lib.SetReactiveSeparate.restype = c_bool
         self.qrack_lib.SetReactiveSeparate.argtypes = [c_ulonglong, c_bool]
 
         self.qrack_lib.SetTInjection.restype = c_bool
         self.qrack_lib.SetTInjection.argtypes = [c_ulonglong, c_bool]
+
+        self.qrack_lib.SetNoiseParameter.restype = c_bool
+        self.qrack_lib.SetNoiseParameter.argtypes = [c_ulonglong, c_double]
 
         self.qrack_lib.qstabilizer_out_to_file.restype = None
         self.qrack_lib.qstabilizer_out_to_file.argtypes = [c_ulonglong, c_char_p]

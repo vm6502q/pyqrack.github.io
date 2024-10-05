@@ -57,8 +57,6 @@ class QrackNeuron:
         self.alpha = alpha
         self.tolerance = tolerance
 
-        self.amp_count = 1 << (len(controls) + 1)
-
         if not _init:
             return
 
@@ -121,10 +119,9 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        ket = self._real1_byref([0.0] * self.amp_count)
+        ket = self._real1_byref([0.0] * (1 << len(self.controls)))
         Qrack.qrack_lib.get_qneuron_angles(self.nid, ket)
-        if self._get_error() != 0:
-            raise RuntimeError("QrackSimulator C++ library raised exception.")
+        self._throw_if_error()
         return list(ket)
 
     def set_alpha(self, a):
