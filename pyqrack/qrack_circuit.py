@@ -12,7 +12,7 @@ _IS_QISKIT_AVAILABLE = True
 try:
     from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.compiler.transpiler import transpile
-    from qiskit.circuit.library import UCGate
+    from qiskit.circuit.library import U3Gate, UCGate
     import numpy as np
     import math
 except ImportError:
@@ -30,6 +30,23 @@ try:
     import tensorcircuit as tc
 except ImportError:
     _IS_TENSORCIRCUIT_AVAILABLE = False
+
+
+def euler_angles_1q(m):
+    phase = (m[0][0] * m[1][1] - m[0][1] * m[1][0]) ** (-1.0/2.0)
+    U = [[phase * m[0][0], phase * m[0][1]], [phase * m[1][0], phase * m[1][1]]]
+
+    theta = 2 * math.atan2(abs(U[1][0]), abs(U[0][0]))
+
+    # Find phi and lambda
+    phiplambda = 2 * np.angle(U[1][1])
+    phimlambda = 2 * np.angle(U[1][0])
+
+    phi = (phiplambda + phimlambda) / 2.0
+    lamb = (phiplambda - phimlambda) / 2.0
+
+    return theta, phi, lamb
+
 
 class QrackCircuit:
     """Class that exposes the QCircuit class of Qrack
@@ -200,6 +217,19 @@ class QrackCircuit:
 
         return out
 
+    def file_gate_count(filename):
+        """File gate count
+
+        Return the count of gates in a QrackCircuit file
+
+        Args:
+            filename: Name of file
+        """
+        tokens = []
+        with open(filename, 'r') as file:
+            tokens = file.read().split()
+        return int(tokens[1])
+
     def file_to_qiskit_circuit(filename):
         """Convert an output file to a Qiskit circuit
 
@@ -286,13 +316,25 @@ class QrackCircuit:
                 payloads[key] = np.array(op)
 
             gate_list = []
-            for j in range(1 << control_count):
-                if j in payloads:
-                    gate_list.append(payloads[j])
-                else:
-                    gate_list.append(np.array([[1, 0],[0, 1]]))
-
-            circ.append(UCGate(gate_list), controls + [target])
+            control_pow = 1 << control_count
+            pLen = len(payloads)
+            if (pLen == 1) or ((control_pow - pLen) > (1 << 15)):
+                for c, p in payloads.items():
+                    theta, phi, lam = euler_angles_1q(p)
+                    if control_count > 0:
+                        circ.append(
+                            U3Gate(theta, phi, lam).control(num_ctrl_qubits=control_count, ctrl_state=c),
+                            controls + [target]
+                        )
+                    else:
+                        circ.append(U3Gate(theta, phi, lam), [target])
+            else:
+                for j in range(control_pow):
+                    if j in payloads:
+                        gate_list.append(payloads[j])
+                    else:
+                        gate_list.append(np.array([[1, 0],[0, 1]]))
+                circ.append(UCGate(gate_list), controls + [target])
 
         return circ
 

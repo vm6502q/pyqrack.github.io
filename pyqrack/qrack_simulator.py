@@ -50,7 +50,7 @@ class QrackSimulator:
         isTensorNetwork=True,
         isSchmidtDecomposeMulti=True,
         isSchmidtDecompose=True,
-        isStabilizerHybrid=True,
+        isStabilizerHybrid=False,
         isBinaryDecisionTree=False,
         isPaged=True,
         isCpuGpuHybrid=True,
@@ -2967,6 +2967,23 @@ class QrackSimulator:
         self._throw_if_error()
         return result
 
+    def separate(self, qs):
+        """Force manual multi-qubits seperation
+
+        Force separation as per `try_separate_tolerance`.
+
+        Args:
+            qs: list of qubits to be decomposed
+
+        Raises:
+            Runtimeerror: QrackSimulator raised an exception.
+        """
+        result = Qrack.qrack_lib.Separate(
+            self.sid, len(qs), self._ulonglong_byref(qs)
+        )
+        self._throw_if_error()
+
+
     def get_unitary_fidelity(self):
         """Get fidelity estimate
 
@@ -3088,6 +3105,20 @@ class QrackSimulator:
         Qrack.qrack_lib.SetNoiseParameter(self.sid, np)
         self._throw_if_error()
 
+    def normalize(self):
+        """Normalize the state
+
+        This should never be necessary to use unless
+        decompose() is "abused." ("Abusing" decompose()
+        might lead to efficient entanglement-breaking
+        channels, though.)
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        Qrack.qrack_lib.Normalize(self.sid)
+        self._throw_if_error()
+
     def out_to_file(self, filename):
         """Output state to file (stabilizer only!)
 
@@ -3099,7 +3130,7 @@ class QrackSimulator:
         Qrack.qrack_lib.qstabilizer_out_to_file(self.sid, filename.encode('utf-8'))
         self._throw_if_error()
 
-    def in_from_file(filename, is_binary_decision_tree = False, is_paged = True, is_cpu_gpu_hybrid = True, is_opencl = True, is_host_pointer = False, is_noisy = False):
+    def in_from_file(filename, is_binary_decision_tree = False, is_paged = True, is_cpu_gpu_hybrid = False, is_opencl = True, is_host_pointer = False, is_noisy = False):
         """Input state from file (stabilizer only!)
 
         Reads in a hybrid stabilizer state from file.
