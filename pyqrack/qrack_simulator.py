@@ -50,7 +50,7 @@ class QrackSimulator:
         qubitCount=-1,
         cloneSid=-1,
         isTensorNetwork=True,
-        isSchmidtDecomposeMulti=True,
+        isSchmidtDecomposeMulti=False,
         isSchmidtDecompose=True,
         isStabilizerHybrid=False,
         isBinaryDecisionTree=False,
@@ -122,6 +122,9 @@ class QrackSimulator:
     def _ulonglong_byref(self, a):
         return (ctypes.c_ulonglong * len(a))(*a)
 
+    def _longlong_byref(self, a):
+        return (ctypes.c_longlong * len(a))(*a)
+
     def _double_byref(self, a):
         return (ctypes.c_double * len(a))(*a)
 
@@ -181,13 +184,18 @@ class QrackSimulator:
         self._throw_if_error()
 
     def set_concurrency(self, p):
-        """ Set the CPU parallel thread count"""
+        """Set the CPU parallel thread count"""
         Qrack.qrack_lib.set_concurrency(self.sid, p)
         self._throw_if_error()
 
     def set_device(self, d):
-        """ Set the GPU device ID"""
+        """Set the GPU device ID"""
         Qrack.qrack_lib.set_device(self.sid, d)
+        self._throw_if_error()
+
+    def set_device_list(self, d):
+        """Set the GPU device ID"""
+        Qrack.qrack_lib.set_device_list(self.sid, len(d), self._longlong_byref(d))
         self._throw_if_error()
 
     def clone(self):
