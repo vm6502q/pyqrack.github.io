@@ -66,7 +66,7 @@ class QrackSystem:
                     )
                     raise e
 
-        self.fppow = 5
+        self.fppow = 6
         if "QRACK_FPPOW" in os.environ:
             self.fppow = int(os.environ.get("QRACK_FPPOW"))
         if self.fppow < 4 or self.fppow > 7:
@@ -147,7 +147,11 @@ class QrackSystem:
         self.qrack_lib.set_device.argtypes = [c_ulonglong, c_longlong]
 
         self.qrack_lib.set_device_list.restype = None
-        self.qrack_lib.set_device_list.argtypes = [c_ulonglong, c_ulonglong, POINTER(c_longlong)]
+        self.qrack_lib.set_device_list.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_longlong),
+        ]
 
         # pseudo-quantum
 

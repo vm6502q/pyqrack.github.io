@@ -102,6 +102,45 @@ class LHVQubit:
         self.ry(theta)
         self.rz(phi)
 
+    # Provided verbatim by Elara (the custom OpenAI GPT):
+    def mtrx(self, matrix):
+        """
+        Apply a 2x2 unitary matrix to the LHV Bloch vector using only standard math/cmath.
+        Matrix format: [a, b, c, d] for [[a, b], [c, d]]
+        """
+        a, b, c, d = matrix
+
+        # Current Bloch vector
+        x, y, z = self.bloch
+
+        # Convert to density matrix ρ = ½ (I + xσx + yσy + zσz)
+        rho = [[(1 + z) / 2, (x - 1j * y) / 2], [(x + 1j * y) / 2, (1 - z) / 2]]
+
+        # Compute U * ρ
+        u_rho = [
+            [a * rho[0][0] + b * rho[1][0], a * rho[0][1] + b * rho[1][1]],
+            [c * rho[0][0] + d * rho[1][0], c * rho[0][1] + d * rho[1][1]],
+        ]
+
+        # Compute (U * ρ) * U†
+        rho_prime = [
+            [
+                u_rho[0][0] * a.conjugate() + u_rho[0][1] * b.conjugate(),
+                u_rho[0][0] * c.conjugate() + u_rho[0][1] * d.conjugate(),
+            ],
+            [
+                u_rho[1][0] * a.conjugate() + u_rho[1][1] * b.conjugate(),
+                u_rho[1][0] * c.conjugate() + u_rho[1][1] * d.conjugate(),
+            ],
+        ]
+
+        # Extract Bloch components: Tr(ρ'σi) = 2 * Re[...]
+        new_x = 2 * rho_prime[0][1].real + 2 * rho_prime[1][0].real
+        new_y = 2 * (rho_prime[0][1].imag - rho_prime[1][0].imag)
+        new_z = 2 * rho_prime[0][0].real - 1  # since Tr(ρ') = 1
+
+        self.bloch = [new_x, new_y, new_z]
+
     def prob(self, basis=Pauli.PauliZ):
         """Sample a classical outcome from the current 'quantum' state"""
         if basis == Pauli.PauliZ:
@@ -163,14 +202,16 @@ class QrackAceBackend:
         sim(QrackSimulator): Array of simulators corresponding to "patches" between boundary rows.
         long_range_columns(int): How many ideal rows between QEC boundary rows?
         is_transpose(bool): Rows are long if False, columns are long if True
+        correction_bias(float): Bias magnitude and direction during pseudo-QEC
     """
 
     def __init__(
         self,
         qubit_count=1,
-        long_range_columns=5,
-        long_range_rows=2,
+        long_range_columns=4,
+        long_range_rows=4,
         is_transpose=False,
+        correction_bias=0,
         isTensorNetwork=False,
         isSchmidtDecomposeMulti=False,
         isSchmidtDecompose=True,
@@ -199,6 +240,7 @@ class QrackAceBackend:
         self.long_range_columns = long_range_columns
         self.long_range_rows = long_range_rows
         self.is_transpose = is_transpose
+        self.correction_bias = correction_bias
 
         fppow = 5
         if "QRACK_FPPOW" in os.environ:
@@ -233,12 +275,8 @@ class QrackAceBackend:
             if long_range_rows < self._col_length:
                 self._is_row_long_range[-1] = False
         sim_count = col_patch_count * row_patch_count
-        self._row_offset = 0
-        for r in range(self._col_length):
-            for c in self._is_col_long_range:
-                self._row_offset += 1 if c else 3
 
-        self._qubit_dict = {}
+        self._qubits = []
         sim_counts = [0] * sim_count
         sim_id = 0
         tot_qubits = 0
@@ -255,7 +293,7 @@ class QrackAceBackend:
                     qubit.append(
                         LHVQubit(
                             toClone=(
-                                toClone._qubit_dict[tot_qubits][2] if toClone else None
+                                toClone._qubits[tot_qubits][2] if toClone else None
                             )
                         )
                     )
@@ -272,7 +310,7 @@ class QrackAceBackend:
                 if not c:
                     sim_id = (sim_id + 1) % sim_count
 
-                self._qubit_dict[tot_qubits] = qubit
+                self._qubits.append(qubit)
                 tot_qubits += 1
 
         self.sim = []
@@ -297,7 +335,8 @@ class QrackAceBackend:
 
             # You can still "monkey-patch" this, after the constructor.
             if "QRACK_QUNIT_SEPARABILITY_THRESHOLD" not in os.environ:
-                self.sim[i].set_sdrp(0.02375)
+                # (1 - 1 / sqrt(2)) / 4 (but empirically tuned)
+                self.sim[i].set_sdrp(0.073223304703363119)
 
     def clone(self):
         return QrackAceBackend(toClone=self)
@@ -388,7 +427,7 @@ class QrackAceBackend:
         self._qec_x(c)
 
     def _unpack(self, lq):
-        return self._qubit_dict[lq]
+        return self._qubits[lq]
 
     def _get_qb_lhv_indices(self, hq):
         qb = []
@@ -404,7 +443,84 @@ class QrackAceBackend:
 
         return qb, lhv
 
-    def _correct(self, lq, phase=False):
+    def _get_lhv_bloch_angles(self, sim):
+        # Z axis
+        z = 1 - 2 * sim.prob(Pauli.PauliZ)
+
+        # X axis
+        x = 1 - 2 * sim.prob(Pauli.PauliX)
+
+        # Y axis
+        y = 1 - 2 * sim.prob(Pauli.PauliY)
+
+        inclination = math.atan2(math.sqrt(x**2 + y**2), z)
+        azimuth = math.atan2(y, x)
+
+        return azimuth, inclination
+
+    def _get_bloch_angles(self, hq):
+        sim = self.sim[hq[0]].clone()
+        q = hq[1]
+        sim.separate([q])
+
+        # Z axis
+        z = 1 - 2 * sim.prob(q)
+
+        # X axis
+        sim.h(q)
+        x = 1 - 2 * sim.prob(q)
+        sim.h(q)
+
+        # Y axis
+        sim.adjs(q)
+        sim.h(q)
+        y = 1 - 2 * sim.prob(q)
+        sim.h(q)
+        sim.s(q)
+
+        inclination = math.atan2(math.sqrt(x**2 + y**2), z)
+        azimuth = math.atan2(y, x)
+
+        return azimuth, inclination
+
+    def _rotate_to_bloch(
+        self, hq, delta_azimuth, delta_inclination
+    ):
+        sim = self.sim[hq[0]]
+        q = hq[1]
+
+        # Apply rotation as "Azimuth, Inclination" (AI)
+        cosA = math.cos(delta_azimuth)
+        sinA = math.sin(delta_azimuth)
+        cosI = math.cos(delta_inclination / 2)
+        sinI = math.sin(delta_inclination / 2)
+
+        m00 = complex(cosI, 0)
+        m01 = complex(-cosA, sinA) * sinI
+        m10 = complex(cosA, sinA) * sinI
+        m11 = complex(cosI, 0)
+
+        sim.mtrx([m00, m01, m10, m11], q)
+
+
+    def _rotate_lhv_to_bloch(
+        self, sim, delta_azimuth, delta_inclination
+    ):
+        # Apply rotation as "Azimuth, Inclination" (AI)
+        cosA = math.cos(delta_azimuth)
+        sinA = math.sin(delta_azimuth)
+        cosI = math.cos(delta_inclination / 2)
+        sinI = math.sin(delta_inclination / 2)
+
+        m00 = complex(cosI, 0)
+        m01 = complex(-cosA, sinA) * sinI
+        m10 = complex(cosA, sinA) * sinI
+        m11 = complex(cosI, 0)
+
+        sim.mtrx([m00, m01, m10, m11])
+
+
+    def _correct(self, lq, phase=False, skip_rotation=False):
         hq = self._unpack(lq)
 
         if len(hq) == 1:
@@ -454,6 +570,33 @@ class QrackAceBackend:
                         hq[q].x()
                     else:
                         self.sim[hq[q][0]].x(hq[q][1])
+
+            if not skip_rotation:
+                a, i = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
+                a[0], i[0] = self._get_bloch_angles(hq[0])
+                a[1], i[1] = self._get_bloch_angles(hq[1])
+                a[2], i[2] = self._get_lhv_bloch_angles(hq[2])
+                a[3], i[3] = self._get_bloch_angles(hq[3])
+                a[4], i[4] = self._get_bloch_angles(hq[4])
+
+                a_target = 0
+                i_target = 0
+                for x in range(5):
+                    if x == 2:
+                        continue
+                    a_target += a[x]
+                    i_target += i[x]
+
+                a_target /= 5
+                i_target /= 5
+                for x in range(5):
+                    if x == 2:
+                        self._rotate_lhv_to_bloch(hq[x], a_target - a[x], i_target - i[x])
+                    else:
+                        self._rotate_to_bloch(hq[x], a_target - a[x], i_target - i[x])
+
+                self.apply_magnetic_bias([lq], self.correction_bias)
+
         else:
             # RMS
             p = [
@@ -473,12 +616,55 @@ class QrackAceBackend:
                     else:
                         self.sim[hq[q][0]].x(hq[q][1])
 
+            if not skip_rotation:
+                a, i = [0, 0, 0], [0, 0, 0]
+                a[0], i[0] = self._get_bloch_angles(hq[0])
+                a[1], i[1] = self._get_bloch_angles(hq[1])
+                a[2], i[2] = self._get_lhv_bloch_angles(hq[2])
+
+                a_target = 0
+                i_target = 0
+                for x in range(3):
+                    if x == 2:
+                        continue
+                    a_target += a[x]
+                    i_target += i[x]
+
+                a_target /= 3
+                i_target /= 3
+                for x in range(3):
+                    if x == 2:
+                        self._rotate_lhv_to_bloch(hq[x], a_target - a[x], i_target - i[x])
+                    else:
+                        self._rotate_to_bloch(hq[x], a_target - a[x], i_target - i[x])
+
+                self.apply_magnetic_bias([lq], self.correction_bias)
+
         if phase:
             for q in qb:
                 b = hq[q]
                 self.sim[b[0]].h(b[1])
             b = hq[lhv]
             b.h()
+
+    def apply_magnetic_bias(self, q, b):
+        if b == 0:
+            return
+        b = math.exp(b)
+        for x in q:
+            hq = self._unpack(x)
+            for c in range(len(hq)):
+                h = hq[c]
+                if c == 2:
+                    a, i = self._get_lhv_bloch_angles(h)
+                    self._rotate_lhv_to_bloch(
+                        h, math.atan(math.tan(a) * b) - a, math.atan(math.tan(i) * b) - i
+                    )
+                else:
+                    a, i = self._get_bloch_angles(h)
+                    self._rotate_to_bloch(
+                        h, math.atan(math.tan(a) * b) - a, math.atan(math.tan(i) * b) - i
+                    )
 
     def u(self, lq, th, ph, lm):
         hq = self._unpack(lq)
@@ -496,8 +682,8 @@ class QrackAceBackend:
         b = hq[lhv]
         b.u(th, ph, lm)
 
-        self._correct(lq, False)
-        self._correct(lq, True)
+        self._correct(lq, False, True)
+        self._correct(lq, True, False)
 
     def r(self, p, th, lq):
         hq = self._unpack(lq)
@@ -521,7 +707,7 @@ class QrackAceBackend:
             b.rz(th)
 
         if p != Pauli.PauliZ:
-            self._correct(lq, False)
+            self._correct(lq, False, p != Pauli.PauliX)
         if p != Pauli.PauliX:
             self._correct(lq, True)
 
@@ -745,7 +931,7 @@ class QrackAceBackend:
 
         self._correct(lq1, True)
         if pauli != Pauli.PauliZ:
-            self._correct(lq2, False)
+            self._correct(lq2, False, pauli != Pauli.PauliX)
         if pauli != Pauli.PauliX:
             self._correct(lq2, True)
 
