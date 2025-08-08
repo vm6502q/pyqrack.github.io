@@ -1053,9 +1053,16 @@ class QrackSimulator:
         Returns:
             Measurement result of all qubits.
         """
-        result = Qrack.qrack_lib.MAll(self.sid)
+        num_q = self.num_qubits()
+        num_words = (num_q + 63) // 64
+        _r = (ctypes.c_ulonglong * num_words)()
+        Qrack.qrack_lib.MAllLong(self.sid, _r)
         self._throw_if_error()
-        return result
+        r = 0
+        for w in range(num_words):
+            r <<= 64
+            r |= _r[w]
+        return r
 
     def measure_pauli(self, b, q):
         """Pauli Measurement gate
@@ -2284,6 +2291,26 @@ class QrackSimulator:
         Qrack.qrack_lib.OutProbs(self.sid, probs)
         self._throw_if_error()
         return list(probs)
+
+    def out_rdm(self, q):
+        """Get reduced density matrix
+
+        Returns the raw reduced density matrix of the simulator, for the qubit list.
+        Warning: State vector or is not always the internal representation leading
+        to sub-optimal performance of the method.
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+
+        Returns:
+            flat list structure representing the reduced density matrix.
+        """
+        amp_count = 1 << len(q)
+        sqr_amp_count = amp_count * amp_count
+        flat_rdm = self._qrack_complex_byref([complex(0, 0)] * sqr_amp_count)
+        Qrack.qrack_lib.OutReducedDensityMatrix(self.sid, len(q), self._ulonglong_byref(q), flat_rdm)
+        self._throw_if_error()
+        return [complex(r, i) for r, i in self._pairwise(flat_rdm)]
 
     def prob_all(self, q):
         """Probabilities of all subset permutations

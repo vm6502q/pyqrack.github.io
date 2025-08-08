@@ -66,7 +66,7 @@ class QrackSystem:
                     )
                     raise e
 
-        self.fppow = 6
+        self.fppow = 5
         if "QRACK_FPPOW" in os.environ:
             self.fppow = int(os.environ.get("QRACK_FPPOW"))
         if self.fppow < 4 or self.fppow > 7:
@@ -87,19 +87,22 @@ class QrackSystem:
             CFUNCTYPE(c_ulonglong, c_double, c_double),
         ]
 
-        # These next two methods need to have c_double pointers, if PyQrack is built with fp64.
+        # These next few methods need to have c_double pointers, if PyQrack is built with fp64.
         self.qrack_lib.InKet.restype = None
         self.qrack_lib.OutKet.restype = None
         self.qrack_lib.OutProbs.restype = None
+        self.qrack_lib.OutReducedDensityMatrix.restype = None
 
         if self.fppow < 6:
             self.qrack_lib.InKet.argtypes = [c_ulonglong, POINTER(c_float)]
             self.qrack_lib.OutKet.argtypes = [c_ulonglong, POINTER(c_float)]
             self.qrack_lib.OutProbs.argtypes = [c_ulonglong, POINTER(c_float)]
+            self.qrack_lib.OutReducedDensityMatrix.argtypes = [c_ulonglong, c_ulonglong, POINTER(c_ulonglong), POINTER(c_float)]
         else:
             self.qrack_lib.InKet.argtypes = [c_ulonglong, POINTER(c_double)]
             self.qrack_lib.OutKet.argtypes = [c_ulonglong, POINTER(c_double)]
             self.qrack_lib.OutProbs.argtypes = [c_ulonglong, POINTER(c_double)]
+            self.qrack_lib.OutReducedDensityMatrix.argtypes = [c_ulonglong, c_ulonglong, POINTER(c_ulonglong), POINTER(c_double)]
 
         self.qrack_lib.init.restype = c_ulonglong
         self.qrack_lib.init.argtypes = []
@@ -789,6 +792,9 @@ class QrackSystem:
 
         self.qrack_lib.MAll.restype = c_ulonglong
         self.qrack_lib.MAll.argtypes = [c_ulonglong]
+
+        self.qrack_lib.MAllLong.restype = None
+        self.qrack_lib.MAllLong.argtypes = [c_ulonglong, POINTER(c_ulonglong)]
 
         self.qrack_lib.Measure.restype = c_ulonglong
         self.qrack_lib.Measure.argtypes = [
