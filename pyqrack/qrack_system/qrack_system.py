@@ -111,10 +111,10 @@ class QrackSystem:
         self.qrack_lib.get_error.argtypes = [c_ulonglong]
 
         self.qrack_lib.init_count.restype = c_ulonglong
-        self.qrack_lib.init_count.argtypes = [c_ulonglong, c_bool]
+        self.qrack_lib.init_count.argtypes = [c_ulonglong, c_bool, c_bool]
 
         self.qrack_lib.init_count_pager.restype = c_ulonglong
-        self.qrack_lib.init_count_pager.argtypes = [c_ulonglong, c_bool]
+        self.qrack_lib.init_count_pager.argtypes = [c_ulonglong, c_bool, c_bool]
 
         self.qrack_lib.init_count_type.restype = c_ulonglong
         self.qrack_lib.init_count_type.argtypes = [
@@ -129,6 +129,7 @@ class QrackSystem:
             c_bool,
             c_bool,
             c_bool,
+            c_bool
         ]
 
         self.qrack_lib.init_count_stabilizer.restype = c_ulonglong
@@ -160,6 +161,9 @@ class QrackSystem:
 
         self.qrack_lib.HighestProbAll.restype = None
         self.qrack_lib.HighestProbAll.argtypes = [c_ulonglong, POINTER(c_ulonglong)]
+
+        self.qrack_lib.HighestProbAllN.restype = None
+        self.qrack_lib.HighestProbAllN.argtypes = [c_ulonglong, c_ulonglong, POINTER(c_ulonglong)]
 
         self.qrack_lib.ProbAll.restype = None
         if self.fppow == 5:
@@ -1214,6 +1218,12 @@ class QrackSystem:
 
         self.qrack_lib.SetNoiseParameter.restype = None
         self.qrack_lib.SetNoiseParameter.argtypes = [c_ulonglong, c_double]
+
+        self.qrack_lib.SetAceMaxQb.restype = None
+        self.qrack_lib.SetAceMaxQb.argtypes = [c_ulonglong, c_ulonglong]
+
+        self.qrack_lib.SetSparseAceMaxMb.restype = None
+        self.qrack_lib.SetSparseAceMaxMb.argtypes = [c_ulonglong, c_size_t]
 
         self.qrack_lib.Normalize.restype = None
         self.qrack_lib.Normalize.argtypes = [c_ulonglong]
