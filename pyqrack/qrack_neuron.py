@@ -64,7 +64,7 @@ class QrackNeuron:
         self.nid = Qrack.qrack_lib.init_qneuron(
             simulator.sid,
             len(controls),
-            self._ulonglong_byref(controls),
+            QrackNeuron._ulonglong_byref(controls),
             target,
             activation_fn,
             alpha,
@@ -99,14 +99,31 @@ class QrackNeuron:
         self._throw_if_error()
         return result
 
-    def _ulonglong_byref(self, a):
+    @staticmethod
+    def _ulonglong_byref(a):
         return (ctypes.c_ulonglong * len(a))(*a)
 
-    def _real1_byref(self, a):
+    @staticmethod
+    def _real1_byref(a):
         # This needs to be c_double, if PyQrack is built with fp64.
         if Qrack.fppow < 6:
             return (ctypes.c_float * len(a))(*a)
         return (ctypes.c_double * len(a))(*a)
+
+    def set_simulator(self, s):
+        """Set the neuron simulator
+
+        Set the simulator used by this neuron
+
+        Args:
+            s(QrackSimulator): The simulator to use
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        Qrack.qrack_lib.set_qneuron_sim(self.nid, s.sid)
+        self._throw_if_error()
+        self.simulator = s
 
     def set_angles(self, a):
         """Directly sets the neuron parameters.
@@ -125,7 +142,7 @@ class QrackNeuron:
             raise ValueError(
                 "Angles 'a' in QrackNeuron.set_angles() must contain at least (2 ** len(self.controls)) elements."
             )
-        Qrack.qrack_lib.set_qneuron_angles(self.nid, self._real1_byref(a))
+        Qrack.qrack_lib.set_qneuron_angles(self.nid, QrackNeuron._real1_byref(a))
         self._throw_if_error()
 
     def get_angles(self):
@@ -137,7 +154,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        ket = self._real1_byref([0.0] * (1 << len(self.controls)))
+        ket = QrackNeuron._real1_byref([0.0] * (1 << len(self.controls)))
         Qrack.qrack_lib.get_qneuron_angles(self.nid, ket)
         self._throw_if_error()
         return list(ket)
@@ -261,8 +278,9 @@ class QrackNeuron:
         Qrack.qrack_lib.qneuron_learn_permutation(self.nid, eta, e, r)
         self._throw_if_error()
 
+    @staticmethod
     def quantile_bounds(vec, bits):
-        """ Calculate vector quantile bounds
+        """Calculate vector quantile bounds
 
         This is a static helper method to calculate the quantile
         bounds of 2 ** bits worth of quantiles.
@@ -280,10 +298,15 @@ class QrackNeuron:
         n = len(vec)
         vec_sorted = sorted(vec)
 
-        return [vec_sorted[0]] + [vec_sorted[(k * n) // bins] for k in range(1, bins)] + [vec_sorted[-1]]
+        return (
+            [vec_sorted[0]]
+            + [vec_sorted[(k * n) // bins] for k in range(1, bins)]
+            + [vec_sorted[-1]]
+        )
 
+    @staticmethod
     def discretize(vec, bounds):
-        """ Discretize vector by quantile bounds
+        """Discretize vector by quantile bounds
 
         This is a static helper method to discretize a numerical
         vector according to quantile bounds calculated by the
@@ -311,8 +334,9 @@ class QrackNeuron:
 
         return vec_discrete
 
+    @staticmethod
     def flatten_and_transpose(arr):
-        """ Flatten and transpose feature matrix
+        """Flatten and transpose feature matrix
 
         This is a static helper method to convert a multi-feature
         bit-row matrix to an observation-row matrix with flat
@@ -326,8 +350,9 @@ class QrackNeuron:
         """
         return list(zip(*[item for sublist in arr for item in sublist]))
 
+    @staticmethod
     def bin_endpoints_average(bounds):
-        """ Bin endpoints average
+        """Bin endpoints average
 
         This is a static helper method that accepts the output
         bins from quantile_bounds() and returns the average points
