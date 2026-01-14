@@ -6,6 +6,7 @@
 # Use of this source code is governed by an MIT-style license that can be
 # found in the LICENSE file or at https://opensource.org/licenses/MIT.
 
+import ctypes
 import itertools
 import math
 import random
@@ -22,6 +23,7 @@ except ImportError:
 from .pauli import Pauli
 from .qrack_neuron import QrackNeuron
 from .qrack_simulator import QrackSimulator
+from .qrack_system import Qrack
 from .neuron_activation_fn import NeuronActivationFn
 
 
@@ -29,6 +31,8 @@ from .neuron_activation_fn import NeuronActivationFn
 param_shift_eps = math.pi / 2
 # Neuron angle initialization
 init_phi = math.asin(0.5)
+# Systemic floating-point type
+fp_type = ctypes.c_float if Qrack.fppow <= 5 else ctypes.c_double
 
 
 class QrackNeuronTorchFunction(Function if _IS_TORCH_AVAILABLE else object):
@@ -44,7 +48,7 @@ class QrackNeuronTorchFunction(Function if _IS_TORCH_AVAILABLE else object):
         pre_prob = neuron.simulator.prob(neuron.target)
 
         angles = x.detach().cpu().numpy() if x.requires_grad else x.numpy()
-        neuron.set_angles(angles)
+        neuron.angles = angles.ctypes.data_as(ctypes.POINTER(fp_type))
         neuron.predict(True, False)
 
         # Probability AFTER applying this neuron's unitary
@@ -67,7 +71,7 @@ class QrackNeuronTorchFunction(Function if _IS_TORCH_AVAILABLE else object):
         angles = x.detach().cpu().numpy() if x.requires_grad else x.numpy()
 
         # Restore simulator to state BEFORE this neuron's unitary
-        neuron.set_angles(angles)
+        neuron.angles = angles.ctypes.data_as(ctypes.POINTER(fp_type))
         neuron.unpredict()
         pre_sim = neuron.simulator
 
@@ -203,6 +207,8 @@ class QrackNeuronTorchLayer(nn.Module if _IS_TORCH_AVAILABLE else object):
                     param_count += p_count
         self.neurons = nn.ModuleList(neurons)
 
+        # Prepare the state before feed-forward:
+
         # Prepare hidden predictors
         for hidden_id in self.hidden_indices:
             self.simulator.h(hidden_id)
@@ -226,9 +232,12 @@ class QrackNeuronTorchLayer(nn.Module if _IS_TORCH_AVAILABLE else object):
             simulator = self.simulator.clone()
             self.simulators.append(simulator)
 
+            # Apply feed-forward
             for q, input_id in enumerate(self.input_indices):
                 simulator.r(Pauli.PauliY, math.pi * x[b, q].item(), input_id)
-                self.post_init_fn(simulator)
+
+            # Differentiable post-initialization:
+            self.post_init_fn(simulator)
 
             row = []
             for out in self.output_indices:

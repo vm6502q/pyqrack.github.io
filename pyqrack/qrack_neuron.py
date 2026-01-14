@@ -31,7 +31,9 @@ class QrackNeuron:
         simulator(QrackSimulator): Simulator instance for all synaptic clefts of the neuron
         controls(list(int)): Indices of all "control" qubits, for neuron input
         target(int): Index of "target" qubit, for neuron output
-        tolerance(double): Rounding tolerance
+        activation_fn(NeuronActivationFn): Activation function choice
+        alpha(float): Activation function parameter, if required
+        angles(list[ctypes.c_float]): (or c_double) Memory for neuron prediction angles
     """
 
     def _get_error(self):
@@ -48,7 +50,6 @@ class QrackNeuron:
         target,
         activation_fn=NeuronActivationFn.Sigmoid,
         alpha=1.0,
-        tolerance=sys.float_info.epsilon,
         _init=True,
     ):
         self.simulator = simulator
@@ -56,7 +57,7 @@ class QrackNeuron:
         self.target = target
         self.activation_fn = activation_fn
         self.alpha = alpha
-        self.tolerance = tolerance
+        self.angles = QrackNeuron._real1_byref([0.0] * (1 << len(controls)))
 
         if not _init:
             return
@@ -66,9 +67,6 @@ class QrackNeuron:
             len(controls),
             QrackNeuron._ulonglong_byref(controls),
             target,
-            activation_fn,
-            alpha,
-            tolerance,
         )
 
         self._throw_if_error()
@@ -91,11 +89,9 @@ class QrackNeuron:
             self.simulator,
             self.controls,
             self.target,
-            self.activation_fn,
-            self.alpha,
-            self.tolerance,
         )
-        self.nid = Qrack.qrack_lib.clone_qneuron(self.simulator.sid)
+        result.nid = Qrack.qrack_lib.clone_qneuron(self.simulator.sid)
+        result.angles = self.angles[:]
         self._throw_if_error()
         return result
 
@@ -121,7 +117,13 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackSimulator raised an exception.
         """
-        Qrack.qrack_lib.set_qneuron_sim(self.nid, s.sid)
+        Qrack.qrack_lib.set_qneuron_sim(
+            self.nid,
+            s.sid,
+            len(self.controls),
+            QrackNeuron._ulonglong_byref(self.controls),
+            self.target,
+        )
         self._throw_if_error()
         self.simulator = s
 
@@ -142,8 +144,7 @@ class QrackNeuron:
             raise ValueError(
                 "Angles 'a' in QrackNeuron.set_angles() must contain at least (2 ** len(self.controls)) elements."
             )
-        Qrack.qrack_lib.set_qneuron_angles(self.nid, QrackNeuron._real1_byref(a))
-        self._throw_if_error()
+        self.angles = QrackNeuron._real1_byref(a)
 
     def get_angles(self):
         """Directly gets the neuron parameters.
@@ -154,10 +155,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        ket = QrackNeuron._real1_byref([0.0] * (1 << len(self.controls)))
-        Qrack.qrack_lib.get_qneuron_angles(self.nid, ket)
-        self._throw_if_error()
-        return list(ket)
+        return list(self.angles)
 
     def set_alpha(self, a):
         """Set the neuron 'alpha' parameter.
@@ -166,13 +164,8 @@ class QrackNeuron:
         parameter that is applied as a power to its angles, before
         learning and prediction. This makes the activation function
         sharper (or less sharp).
-
-        Raises:
-            RuntimeError: QrackNeuron C++ library raised an exception.
         """
         self.alpha = a
-        Qrack.qrack_lib.set_qneuron_alpha(self.nid, a)
-        self._throw_if_error()
 
     def set_activation_fn(self, f):
         """Sets the activation function of this QrackNeuron
@@ -180,13 +173,8 @@ class QrackNeuron:
         Nonlinear activation functions can be important to neural net
         applications, like DNN. The available activation functions are
         enumerated in `NeuronActivationFn`.
-
-        Raises:
-            RuntimeError: QrackNeuron C++ library raised an exception.
         """
         self.activation_fn = f
-        Qrack.qrack_lib.set_qneuron_activation_fn(self.nid, f)
-        self._throw_if_error()
 
     def predict(self, e=True, r=True):
         """Predict based on training
@@ -205,7 +193,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        result = Qrack.qrack_lib.qneuron_predict(self.nid, e, r)
+        result = Qrack.qrack_lib.qneuron_predict(self.nid, self.angles, e, r, self.activation_fn, self.alpha)
         self._throw_if_error()
         return result
 
@@ -221,7 +209,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        result = Qrack.qrack_lib.qneuron_unpredict(self.nid, e)
+        result = Qrack.qrack_lib.qneuron_unpredict(self.nid, self.angles, e, self.activation_fn, self.alpha)
         self._throw_if_error()
         return result
 
@@ -237,7 +225,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        Qrack.qrack_lib.qneuron_learn_cycle(self.nid, e)
+        Qrack.qrack_lib.qneuron_learn_cycle(self.nid, self.angles, e, self.activation_fn, self.alpha)
         self._throw_if_error()
 
     def learn(self, eta, e=True, r=True):
@@ -256,7 +244,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        Qrack.qrack_lib.qneuron_learn(self.nid, eta, e, r)
+        Qrack.qrack_lib.qneuron_learn(self.nid, self.angles, eta, e, r, self.activation_fn, self.alpha)
         self._throw_if_error()
 
     def learn_permutation(self, eta, e=True, r=True):
@@ -275,7 +263,7 @@ class QrackNeuron:
         Raises:
             RuntimeError: QrackNeuron C++ library raised an exception.
         """
-        Qrack.qrack_lib.qneuron_learn_permutation(self.nid, eta, e, r)
+        Qrack.qrack_lib.qneuron_learn_permutation(self.nid, self.angles, eta, e, r, self.activation_fn, self.alpha)
         self._throw_if_error()
 
     @staticmethod
