@@ -1214,11 +1214,17 @@ class QrackSystem:
         self.qrack_lib.SetNcrp.restype = None
         self.qrack_lib.SetNcrp.argtypes = [c_ulonglong, c_double]
 
+        self.qrack_lib.SetSprp.restype = None
+        self.qrack_lib.SetSprp.argtypes = [c_ulonglong, c_double]
+
         self.qrack_lib.SetReactiveSeparate.restype = None
         self.qrack_lib.SetReactiveSeparate.argtypes = [c_ulonglong, c_bool]
 
         self.qrack_lib.SetTInjection.restype = None
         self.qrack_lib.SetTInjection.argtypes = [c_ulonglong, c_bool]
+
+        self.qrack_lib.SetUseExactNearClifford.restype = None
+        self.qrack_lib.SetUseExactNearClifford.argtypes = [c_ulonglong, c_bool]
 
         self.qrack_lib.SetNoiseParameter.restype = None
         self.qrack_lib.SetNoiseParameter.argtypes = [c_ulonglong, c_double]
@@ -1228,6 +1234,18 @@ class QrackSystem:
 
         self.qrack_lib.SetSparseAceMaxMb.restype = None
         self.qrack_lib.SetSparseAceMaxMb.argtypes = [c_ulonglong, c_size_t]
+
+        self.qrack_lib.SetStochastic.restype = None
+        self.qrack_lib.SetStochastic.argtypes = [c_ulonglong, c_bool]
+
+        self.qrack_lib.SetMajorQuadrant.restype = None
+        self.qrack_lib.SetMajorQuadrant.argtypes = [c_ulonglong, c_bool]
+
+        self.qrack_lib.FlipQuadrant.restype = None
+        self.qrack_lib.FlipQuadrant.argtypes = [c_ulonglong, c_ulonglong]
+
+        self.qrack_lib.SetQuadrant.restype = None
+        self.qrack_lib.SetQuadrant.argtypes = [c_ulonglong, c_ulonglong, c_bool]
 
         self.qrack_lib.Normalize.restype = None
         self.qrack_lib.Normalize.argtypes = [c_ulonglong]
