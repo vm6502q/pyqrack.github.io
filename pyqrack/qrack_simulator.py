@@ -47,57 +47,68 @@ class QrackSimulator:
 
     def __init__(
         self,
-        qubitCount=-1,
-        cloneSid=-1,
-        isTensorNetwork=True,
-        isSchmidtDecomposeMulti=False,
-        isSchmidtDecompose=True,
-        isStabilizerHybrid=False,
-        isBinaryDecisionTree=False,
-        isPaged=True,
-        isCpuGpuHybrid=True,
-        isOpenCL=True,
-        isHostPointer=(True if os.environ.get("PYQRACK_HOST_POINTER_DEFAULT_ON") else False),
-        isSparse=False,
+        qubit_count=-1,
+        clone_sid=-1,
+        is_schmidt_decompose_multi=False,
+        is_stabilizer_hybrid=False,
+        is_binary_decision_tree=False,
+        is_gpu=True,
+        is_host_pointer=(True if os.environ.get("PYQRACK_HOST_POINTER_DEFAULT_ON") else False),
+        is_sparse=False,
+        is_near_clifford_tableau_writer=False,
         noise=0,
-        pyzxCircuit=None,
-        qiskitCircuit=None,
+        pyzx_circuit=None,
+        qiskit_circuit=None,
     ):
         self.sid = None
 
-        if pyzxCircuit is not None:
-            qubitCount = pyzxCircuit.qubits
-        elif qiskitCircuit is not None and qubitCount < 0:
+        is_paged=True
+        is_cpu_gpu_hybrid=True
+
+        if is_near_clifford_tableau_writer:
+            is_tensor_network=False
+            is_schmidt_decompose=False
+            is_stabilizer_hybrid=True
+            is_gpu=False
+        else:
+            is_tensor_network=True
+            is_schmidt_decompose=True
+            if is_sparse:
+                is_gpu = False
+
+        if pyzx_circuit is not None:
+            qubit_count = pyzx_circuit.qubits
+        elif qiskit_circuit is not None and qubit_count < 0:
             raise RuntimeError(
                 "Must specify qubitCount with qiskitCircuit parameter in QrackSimulator constructor!"
             )
 
-        if qubitCount > -1 and cloneSid > -1:
+        if qubit_count > -1 and clone_sid > -1:
             raise RuntimeError(
                 "Cannot clone a QrackSimulator and specify its qubit length at the same time, in QrackSimulator constructor!"
             )
 
         self.is_pure_stabilizer = False
 
-        if cloneSid > -1:
-            self.sid = Qrack.qrack_lib.init_clone(cloneSid)
+        if clone_sid > -1:
+            self.sid = Qrack.qrack_lib.init_clone(clone_sid)
         else:
-            if qubitCount < 0:
-                qubitCount = 0
+            if qubit_count < 0:
+                qubit_count = 0
 
             self.sid = Qrack.qrack_lib.init_count_type(
-                qubitCount,
-                isTensorNetwork,
-                isSchmidtDecomposeMulti,
-                isSchmidtDecompose,
-                isStabilizerHybrid,
-                isBinaryDecisionTree,
-                isPaged,
+                qubit_count,
+                is_tensor_network,
+                is_schmidt_decompose_multi,
+                is_schmidt_decompose,
+                is_stabilizer_hybrid,
+                is_binary_decision_tree,
+                is_paged,
                 (noise > 0),
-                isCpuGpuHybrid,
-                isOpenCL,
-                isHostPointer,
-                isSparse,
+                is_cpu_gpu_hybrid,
+                is_gpu,
+                is_host_pointer,
+                is_sparse,
             )
 
         self._throw_if_error()
@@ -105,10 +116,10 @@ class QrackSimulator:
         if noise > 0:
             self.set_noise_parameter(noise)
 
-        if pyzxCircuit is not None:
-            self.run_pyzx_gates(pyzxCircuit.gates)
-        elif qiskitCircuit is not None:
-            self.run_qiskit_circuit(qiskitCircuit)
+        if pyzx_circuit is not None:
+            self.run_pyzx_gates(pyzx_circuit.gates)
+        elif qiskit_circuit is not None:
+            self.run_qiskit_circuit(qiskit_circuit)
 
     def __del__(self):
         if self.sid is not None:
@@ -1129,10 +1140,23 @@ class QrackSimulator:
         Returns:
             list of measurement result.
         """
-        m = QrackSimulator._ulonglong_byref([0] * s)
+        w = (len(q) - 1) // 64 + 1
+        m = QrackSimulator._ulonglong_byref([0] * w * s)
         Qrack.qrack_lib.MeasureShots(self.sid, len(q), QrackSimulator._ulonglong_byref(q), s, m)
         self._throw_if_error()
-        return [m[i] for i in range(s)]
+
+        if w > 1:
+            o = []
+            for i in range(s):
+                t = 0
+                for j in range(w):
+                    t <<= 64
+                    t |= m[i * w + j]
+                o.append(t)
+        else:
+            o = [m[i] for i in range(s)]
+
+        return o
 
     def reset_all(self):
         """Reset gate
@@ -3387,11 +3411,11 @@ class QrackSimulator:
     def in_from_file(
         filename,
         is_binary_decision_tree=False,
-        is_paged=True,
-        is_cpu_gpu_hybrid=False,
-        is_opencl=True,
-        is_host_pointer=False,
-        is_noisy=False,
+        is_gpu=True,
+        is_host_pointer=(True if os.environ.get("PYQRACK_HOST_POINTER_DEFAULT_ON") else False),
+        is_sparse=False,
+        is_near_clifford_tableau_writer=False,
+        noise=0,
     ):
         """Input state from file (stabilizer only!)
 
@@ -3404,22 +3428,27 @@ class QrackSimulator:
         with open(filename) as f:
             qb_count = int(f.readline())
         out = QrackSimulator(
-            qubitCount=qb_count,
-            isTensorNetwork=False,
-            isSchmidtDecomposeMulti=False,
-            isSchmidtDecompose=False,
-            isStabilizerHybrid=True,
-            isBinaryDecisionTree=is_binary_decision_tree,
-            isPaged=is_paged,
-            isCpuGpuHybrid=is_cpu_gpu_hybrid,
-            isOpenCL=is_opencl,
-            isHostPointer=is_host_pointer,
-            isNoisy=is_noisy,
+            qubit_count=qb_count,
+            is_stabilizer_hybrid=True,
+            is_binary_decision_tree=is_binary_decision_tree,
+            is_gpu=is_gpu,
+            is_host_pointer=is_host_pointer,
+            is_sparse=is_sparse,
+            is_near_clifford_tableau_writer=is_near_clifford_tableau_writer,
+            noise=noise,
         )
         Qrack.qrack_lib.qstabilizer_in_from_file(out.sid, filename.encode("utf-8"))
         out._throw_if_error()
 
         return out
+
+    def lossy_out_to_file(self, f, p=6, b=4):
+        Qrack.qrack_lib.lossy_out_to_file(self.sid, f.encode("utf-8"), min(p, self.num_qubits()), b)
+        self._throw_if_error()
+
+    def lossy_in_from_file(self, f):
+        Qrack.qrack_lib.lossy_in_from_file(self.sid, f.encode("utf-8"))
+        self._throw_if_error()
 
     def file_to_qiskit_circuit(filename, is_hardware_encoded=False):
         """Convert an output state file to a Qiskit circuit

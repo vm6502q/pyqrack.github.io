@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.abspath('./../pyqrack'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyQrack'
-copyright = '2022, Daniel Strano and the Qrack Contributors'
+copyright = '2022-2026, Daniel Strano and the Qrack Contributors'
 author = 'Daniel Strano and the Qrack Contributors'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.16.3'
+release = 'v2.0.0'
 
 
 # -- General configuration ---------------------------------------------------
