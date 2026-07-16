@@ -122,7 +122,7 @@ class QrackSimulator:
             self.run_qiskit_circuit(qiskit_circuit)
 
     def __del__(self):
-        if self.sid is not None:
+        if hasattr(self, "sid") and (self.sid is not None):
             Qrack.qrack_lib.destroy(self.sid)
             self.sid = None
 
@@ -220,7 +220,7 @@ class QrackSimulator:
         self._throw_if_error()
 
     def clone(self):
-        return QrackSimulator(cloneSid=self.sid)
+        return QrackSimulator(clone_sid=self.sid)
 
     # standard gates
 
@@ -554,8 +554,8 @@ class QrackSimulator:
         Qrack.qrack_lib.MCAdjT(self.sid, len(c), QrackSimulator._ulonglong_byref(c), q)
         self._throw_if_error()
 
-    def mcu(self, c, q, th, ph, la):
-        """Multi-controlled arbitraty unitary
+    def mcu(self, c, q, th, ph, la, gm=0.0):
+        """Multi-controlled arbitrary unitary
 
         If all controlled qubits are `|1>` then the unitary gate described by
         parameters is applied to the target qubit.
@@ -566,6 +566,7 @@ class QrackSimulator:
             th: theta
             ph: phi
             la: lambda
+            gm: gamma
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -578,6 +579,7 @@ class QrackSimulator:
             ctypes.c_double(th),
             ctypes.c_double(ph),
             ctypes.c_double(la),
+            ctypes.c_double(gm),
         )
         self._throw_if_error()
 
@@ -736,8 +738,8 @@ class QrackSimulator:
         Qrack.qrack_lib.MACAdjT(self.sid, len(c), QrackSimulator._ulonglong_byref(c), q)
         self._throw_if_error()
 
-    def macu(self, c, q, th, ph, la):
-        """Anti multi-controlled arbitraty unitary
+    def macu(self, c, q, th, ph, la, gm=0.0):
+        """Anti multi-controlled arbitrary unitary
 
         If all controlled qubits are `|0>` then the unitary gate described by
         parameters is applied to the target qubit.
@@ -748,6 +750,7 @@ class QrackSimulator:
             th: theta
             ph: phi
             la: lambda
+            gm: gamma
 
         Raises:
             RuntimeError: QrackSimulator raised an exception.
@@ -760,11 +763,12 @@ class QrackSimulator:
             ctypes.c_double(th),
             ctypes.c_double(ph),
             ctypes.c_double(la),
+            ctypes.c_double(gm),
         )
         self._throw_if_error()
 
     def macmtrx(self, c, m, q):
-        """Anti multi-controlled arbitraty operator
+        """Anti multi-controlled arbitrary operator
 
         If all controlled qubits are `|0>` then the arbitrary operation by
         parameters is applied to the target qubit.
@@ -1750,6 +1754,7 @@ class QrackSimulator:
         the length `2 ** len(qi)`.
 
         Args:
+            s: qubit register for carry bit
             qi: qubit register for index
             qv: qubit register for value
             t: list of values
@@ -1781,6 +1786,7 @@ class QrackSimulator:
         the length `2 ** len(qi)`
 
         Args:
+            s: qubit register for carry bit
             qi: qubit register for index
             qv: qubit register for value
             t: list of values
@@ -3196,8 +3202,25 @@ class QrackSimulator:
         Raises:
             Runtimeerror: QrackSimulator raised an exception.
         """
-        result = Qrack.qrack_lib.Separate(self.sid, len(qs), QrackSimulator._ulonglong_byref(qs))
+        Qrack.qrack_lib.Separate(self.sid, len(qs), QrackSimulator._ulonglong_byref(qs))
         self._throw_if_error()
+
+    def are_factorized(self, a, b):
+        """Check whether bits in "a" are factorized from bits in "b"
+
+        After flushing all buffers, check whether "a" set of qubits is factorized separate from "b" set of qubits
+
+        Args:
+            a: first list of qubits
+            b: second list of qubits
+
+        Raises:
+            Runtimeerror: QrackSimulator raised an exception.
+        """
+        result = Qrack.qrack_lib.AreFactorized(self.sid, len(a), QrackSimulator._ulonglong_byref(a), len(b), QrackSimulator._ulonglong_byref(b))
+        self._throw_if_error()
+
+        return result
 
     def get_unitary_fidelity(self):
         """Get fidelity estimate
@@ -4192,13 +4215,22 @@ class QrackSimulator:
                 float(operation.params[0]),
                 float(operation.params[1]),
             )
-        elif (name == "cu3") or (name == "cu"):
+        elif name == "cu3":
             self._sim.mcu(
                 [q._index for q in operation.qubits[0:1]],
                 operation.qubits[1]._index,
                 float(operation.params[0]),
                 float(operation.params[1]),
                 float(operation.params[2]),
+            )
+        elif name == "cu":
+            self._sim.mcu(
+                [q._index for q in operation.qubits[0:1]],
+                operation.qubits[1]._index,
+                float(operation.params[0]),
+                float(operation.params[1]),
+                float(operation.params[2]),
+                float(operation.params[3]),
             )
         elif name == "cx":
             self._sim.mcx([q._index for q in operation.qubits[0:1]], operation.qubits[1]._index)
@@ -4459,7 +4491,7 @@ class QrackSimulator:
                 self._classical_memory = 0
                 self._classical_register = 0
             else:
-                self._sim = QrackSimulator(cloneSid=preamble_sim.sid)
+                self._sim = QrackSimulator(clone_sid=preamble_sim.sid)
                 self._classical_memory = preamble_memory
                 self._classical_register = preamble_register
 
@@ -4484,10 +4516,6 @@ class QrackSimulator:
         return [
             "id",
             "u",
-            "u1",
-            "u2",
-            "u3",
-            "r",
             "rx",
             "ry",
             "rz",
@@ -4497,14 +4525,9 @@ class QrackSimulator:
             "z",
             "s",
             "sdg",
-            "sx",
-            "sxdg",
-            "p",
             "t",
             "tdg",
             "cu",
-            "cu1",
-            "cu3",
             "cx",
             "cy",
             "cz",

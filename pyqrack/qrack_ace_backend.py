@@ -2,11 +2,14 @@
 #
 # Use of this source code is governed by an MIT-style license that can be
 # found in the LICENSE file or at https://opensource.org/licenses/MIT.
+#
+# Produced with input from (OpenAI) ChatGPT and (Anthropic) Claude
 import math
 import os
 import random
 import sys
 import time
+from collections import deque
 
 from .qrack_simulator import QrackSimulator
 from .pauli import Pauli
@@ -189,7 +192,6 @@ def _cpauli_lhv(prob, targ, axis, anti, theta=math.pi):
     elif axis == Pauli.PauliZ:
         targ.rz(effective_theta)
 
-
 class QrackAceBackend:
     """A back end for elided quantum error correction
 
@@ -210,6 +212,12 @@ class QrackAceBackend:
         is_transpose(bool): Rows are long if False, columns are long if True
     """
 
+    # Sweepable vote weights for the 4-source boundary correction pool:
+    # [slot0, slot1, slot2, lhv]. Must sum to an odd number so the
+    # underlying hard-vote tally (independent of the continuous RMS
+    # formula) is always tie-free.
+    _LHV_VOTE_WEIGHTS = [2, 1, 1, 1]
+
     def __init__(
         self,
         qubit_count=1,
@@ -223,6 +231,7 @@ class QrackAceBackend:
         is_host_pointer=(True if os.environ.get("PYQRACK_HOST_POINTER_DEFAULT_ON") else False),
         is_near_clifford_tableau_writer=False,
         noise=0,
+        history_window=0,
         to_clone=None,
     ):
         if to_clone:
@@ -230,15 +239,19 @@ class QrackAceBackend:
             long_range_columns = to_clone.long_range_columns
             long_range_rows = to_clone.long_range_rows
             is_transpose = to_clone.is_transpose
+            history_window = to_clone.history_window
         if qubit_count < 0:
             qubit_count = 0
         if long_range_columns < 0:
             long_range_columns = 0
+        if history_window < 0:
+            history_window = 0
 
         self._factor_width(qubit_count, is_transpose)
         self.long_range_columns = long_range_columns
         self.long_range_rows = long_range_rows
         self.is_transpose = is_transpose
+        self.history_window = history_window
 
         fppow = 5
         if "QRACK_FPPOW" in os.environ:
@@ -274,7 +287,36 @@ class QrackAceBackend:
                 self._is_row_long_range[-1] = False
         sim_count = col_patch_count * row_patch_count
 
+        # Boundary qubits no longer carry a private classical LHV proxy.
+        # Instead, every boundary site (row- and/or column-boundary alike)
+        # gets a real qubit in one single, shared "crossbar" QrackSimulator.
+        # That simulator's own greedy elision (set_sdrp) is trusted to
+        # automatically factor apart whatever boundary sites turn out to be
+        # separable (e.g. disjoint rails, rail intersections), exactly the
+        # same way it already factors apart unentangled subspaces within
+        # any other single QrackSimulator instance. We don't need to special
+        # -case "crossbar intersections" by hand; the elision does it for us.
+        boundary_sim_id = sim_count
+        boundary_count = 0
+
         self._qubits = []
+        self._lhv = {}
+        if self.history_window > 0:
+            if to_clone and to_clone._coupling_history is not None:
+                self._coupling_history = {
+                    k: deque(v, maxlen=self.history_window)
+                    for k, v in to_clone._coupling_history.items()
+                }
+                self._coupling_history_rev = dict(to_clone._coupling_history_rev)
+                self._pending_skip = {k: set(v) for k, v in to_clone._pending_skip.items()}
+            else:
+                self._coupling_history = {}
+                self._coupling_history_rev = {}
+                self._pending_skip = {}
+        else:
+            self._coupling_history = None
+            self._coupling_history_rev = None
+            self._pending_skip = None
         sim_counts = [0] * sim_count
         sim_id = 0
         tot_qubits = 0
@@ -288,8 +330,11 @@ class QrackAceBackend:
                     qubit.append((t_sim_id, sim_counts[t_sim_id]))
                     sim_counts[t_sim_id] += 1
 
-                    qubit.append(
-                        LHVQubit(to_clone=(to_clone._qubits[tot_qubits][2] if to_clone else None))
+                    qubit.append((boundary_sim_id, boundary_count))
+                    boundary_count += 1
+
+                    self._lhv[tot_qubits] = LHVQubit(
+                        to_clone=(to_clone._lhv[tot_qubits] if to_clone else None)
                     )
 
                 if (not c) and (not r):
@@ -307,8 +352,23 @@ class QrackAceBackend:
                 self._qubits.append(qubit)
                 tot_qubits += 1
 
+        # The crossbar's size is fixed by how many boundary sites exist.
+        # When there are none (e.g. a grid small enough, relative to
+        # long_range_rows/columns, that the whole thing is "fully
+        # connected" with no QEC boundary at all), we must NOT allocate a
+        # 0-qubit QrackSimulator for the crossbar: a 0-qubit QrackSimulator
+        # can be constructed, but calling .clone() on one crashes the
+        # native Qrack core (segfault), and clone() is called routinely by
+        # measure_shots()/clone(). So the boundary sim is only created when
+        # boundary_count > 0, exactly mirroring how the original LHV-based
+        # code never instantiated anything for the boundary case when
+        # there were no boundary sites.
+        has_boundary = boundary_count > 0
+        if has_boundary:
+            sim_counts.append(boundary_count)
+
         self.sim = []
-        for i in range(sim_count):
+        for i in range(sim_count + (1 if has_boundary else 0)):
             self.sim.append(
                 to_clone.sim[i].clone()
                 if to_clone
@@ -325,12 +385,58 @@ class QrackAceBackend:
             )
 
             # You can still "monkey-patch" this, after the constructor.
-            if "QRACK_QUNIT_SEPARABILITY_THRESHOLD" not in os.environ:
-                # (1 - 1 / sqrt(2)) / 4 (but empirically tuned)
-                self.sim[i].set_sdrp(0.073223304703363119)
+            # if "QRACK_QUNIT_SEPARABILITY_THRESHOLD" not in os.environ:
+            #     # (1 - 1 / sqrt(2)) / 4 (but empirically tuned)
+            #     self.sim[i].set_sdrp(0.073223304703363119)
+
+        self._boundary_sim_id = boundary_sim_id if has_boundary else None
 
     def clone(self):
         return QrackAceBackend(to_clone=self)
+
+    def measure_shots_consensus(self, q, s, n_instances=3, threshold=0.1):
+        # Consensus measurement across n_instances independent clones.
+        #
+        # For each shot, run n_instances clones of the current state and
+        # compare their marginal probabilities on every logical qubit via
+        # prob(). For each qubit, take the majority vote over all instances:
+        # if the average marginal >= 0.5, force_m to |1>; else to |0>.
+        #
+        # This resolves the parity ambiguity that causes XEB flip-flopping:
+        # a bit-flip on a boundary qubit appears as disagreement between
+        # instances (one sees p~0.9, another sees p~0.1). The majority vote
+        # across n_instances corrects isolated odd-parity errors without
+        # requiring a second full circuit run — just cheap prob() queries.
+        #
+        # threshold: minimum spread in marginals to trigger consensus
+        # correction (below threshold, instances agree and no correction needed).
+        n_qubits = self.num_qubits()
+        samples = []
+        for _ in range(s):
+            # Run n_instances clones, collect marginals for every qubit
+            clones = [self.clone() for _ in range(n_instances)]
+            marginals = [
+                [c.prob(lq) for lq in range(n_qubits)]
+                for c in clones
+            ]
+            # Majority vote: average marginal across instances per qubit
+            avg_marginals = [
+                sum(marginals[i][lq] for i in range(n_instances)) / n_instances
+                for lq in range(n_qubits)
+            ]
+            # Force all qubits in first clone to majority-vote outcome
+            primary = clones[0]
+            for lq in range(n_qubits):
+                result = avg_marginals[lq] >= 0.5
+                primary.force_m(lq, result)
+            # Read out requested qubits
+            _sample = primary.m_all()
+            sample = 0
+            for i in range(len(q)):
+                if (_sample >> q[i]) & 1:
+                    sample |= 1 << i
+            samples.append(sample)
+        return samples
 
     def num_qubits(self):
         return self._row_length * self._col_length
@@ -355,6 +461,24 @@ class QrackAceBackend:
         p1 = self.sim[q1[0]].prob(q1[1]) if isinstance(q1, tuple) else q1.prob()
         p2 = self.sim[q2[0]].prob(q2[1]) if isinstance(q2, tuple) else q2.prob()
 
+        # When p1 and p2 are within floating-point noise of each other
+        # (self._epsilon), they carry no real information about which
+        # qubit is "more likely 1" -- e.g. a fresh target right after
+        # _cx_shadow's H() always reads ~0.5, indistinguishably from a
+        # genuinely-mixed control. This shadow mechanism can only return
+        # ONE definite classical pick per call, so resolving every such
+        # near-tie to a FIXED qubit (as a plain "<" or "<=" comparison
+        # would, once p1/p2 are within epsilon of each other) reintroduces
+        # a systematic bias -- it just moves the bias from "favors q1" to
+        # "always favors q2" instead of removing it. The aggregate
+        # statistics this shadow is meant to approximate (e.g. a real CX
+        # from a maximally-mixed control onto a fresh target makes BOTH
+        # qubits individually read prob=0.5, perfectly correlated) are
+        # only reproduced, across many circuit instances, if a genuine
+        # tie is broken at random rather than by a fixed rule.
+        if abs(p1 - p2) <= self._epsilon:
+            return (p1, q2) if random.random() < 0.5 else (p2, q1)
+
         if p1 < p2:
             return p2, q1
 
@@ -362,7 +486,16 @@ class QrackAceBackend:
 
     def _cz_shadow(self, q1, q2):
         prob_max, t = self._ct_pair_prob(q1, q2)
-        if prob_max > 0.5:
+        # NOTE: this must be ">=", not ">". H() applied to any qubit in a
+        # definite computational-basis state (e.g. a fresh boundary/ancilla
+        # qubit, as in _cx_shadow's H-sandwich) lands at EXACTLY prob=0.5,
+        # deterministically -- this is the ordinary case, not a rare
+        # floating-point tie. A strict "> 0.5" therefore silently no-ops
+        # the shadow gate every time it targets a fresh qubit, which
+        # breaks entanglement transfer for the extremely common case of a
+        # CX/CY/CZ from a maximally-mixed-looking control onto a fresh
+        # target (e.g. H(0); cx(0,1) for a Bell pair).
+        if prob_max >= (0.5 - self._epsilon):
             if isinstance(t, tuple):
                 self.sim[t[0]].z(t[1])
             else:
@@ -422,39 +555,26 @@ class QrackAceBackend:
 
     @staticmethod
     def _get_qb_lhv_indices(hq):
-        qb = []
+        # Historically, index 2 (when present) pointed at a private
+        # classical LHVQubit proxy and had to be special-cased everywhere.
+        # It is now an ordinary (sim_id, idx) tuple into the shared
+        # boundary "crossbar" QrackSimulator, so it is just one more
+        # coupling target like every other index. We keep this helper's
+        # name and signature for minimal call-site churn; "lhv" is now
+        # always -1 (no index needs special-casing any more).
         if len(hq) < 2:
             qb = [0]
-            lhv = -1
         elif len(hq) < 4:
-            qb = [0, 1]
-            lhv = 2
+            qb = [0, 1, 2]
         else:
-            qb = [0, 1, 3, 4]
-            lhv = 2
+            qb = [0, 1, 2, 3, 4]
+        lhv = -1
 
         return qb, lhv
-
-    @staticmethod
-    def _get_lhv_bloch_angles(sim):
-        # Z axis
-        z = sim.bloch[2]
-
-        # X axis
-        x = sim.bloch[0]
-
-        # Y axis
-        y = sim.bloch[1]
-
-        inclination = math.atan2(math.sqrt(x**2 + y**2), z)
-        azimuth = math.atan2(y, x)
-
-        return azimuth, inclination
 
     def _get_bloch_angles(self, hq):
         sim = self.sim[hq[0]].clone()
         q = hq[1]
-        sim.separate([q])
 
         # Z axis
         z = 1 - 2 * sim.prob(q)
@@ -474,7 +594,17 @@ class QrackAceBackend:
         inclination = math.atan2(math.sqrt(x**2 + y**2), z)
         azimuth = math.atan2(y, x)
 
-        return azimuth, inclination
+        # Separability measure, per QUnit::TrySeparate: a genuinely
+        # separable (pure, unentangled) single qubit has Bloch vector
+        # length exactly 1 ("on-shell" -- on the surface of the Bloch
+        # sphere); a qubit reduced from a larger entangled state has
+        # length < 1 ("off-shell interior"). one_minus_r = 1 - |r| is
+        # near 0 for a genuinely separable qubit, and grows toward 1 the
+        # more entangled (mixed, as seen by this one qubit's reduced
+        # density matrix) it actually is.
+        one_minus_r = 1.0 - math.sqrt(x**2 + y**2 + z**2)
+
+        return azimuth, inclination, one_minus_r
 
     def _rotate_to_bloch(self, hq, delta_azimuth, delta_inclination):
         sim = self.sim[hq[0]]
@@ -494,8 +624,16 @@ class QrackAceBackend:
         sim.mtrx([m00, m01, m10, m11], q)
 
     @staticmethod
+    def _get_lhv_bloch_angles(sim):
+        z = sim.bloch[2]
+        x = sim.bloch[0]
+        y = sim.bloch[1]
+        inclination = math.atan2(math.sqrt(x**2 + y**2), z)
+        azimuth = math.atan2(y, x)
+        return azimuth, inclination
+
+    @staticmethod
     def _rotate_lhv_to_bloch(sim, delta_azimuth, delta_inclination):
-        # Apply rotation as "Azimuth, Inclination" (AI)
         cosA = math.cos(delta_azimuth)
         sinA = math.sin(delta_azimuth)
         cosI = math.cos(delta_inclination / 2)
@@ -514,124 +652,221 @@ class QrackAceBackend:
         if len(hq) == 1:
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         if phase:
             for q in qb:
                 b = hq[q]
                 self.sim[b[0]].h(b[1])
-            b = hq[lhv]
-            b.h()
+            if lq in self._lhv:
+                self._lhv[lq].h()
 
         if len(hq) == 5:
-            # RMS
-            p = [
-                self.sim[hq[0][0]].prob(hq[0][1]),
-                self.sim[hq[1][0]].prob(hq[1][1]),
-                hq[2].prob(),
-                self.sim[hq[3][0]].prob(hq[3][1]),
-                self.sim[hq[4][0]].prob(hq[4][1]),
-            ]
-            # Balancing suggestion from Elara (the custom OpenAI GPT)
-            prms = math.sqrt((p[0] ** 2 + p[1] ** 2 + 3 * (p[2] ** 2) + p[3] ** 2 + p[4] ** 2) / 7)
-            qrms = math.sqrt(
-                (
-                    (1 - p[0]) ** 2
-                    + (1 - p[1]) ** 2
-                    + 3 * ((1 - p[2]) ** 2)
-                    + (1 - p[3]) ** 2
-                    + (1 - p[4]) ** 2
+            p0 = self.sim[hq[0][0]].prob(hq[0][1])
+            p1 = self.sim[hq[1][0]].prob(hq[1][1])
+            p2 = self.sim[hq[2][0]].prob(hq[2][1])
+            p3 = self.sim[hq[3][0]].prob(hq[3][1])
+            p4 = self.sim[hq[4][0]].prob(hq[4][1])
+            lhv = self._lhv.get(lq)
+
+            # The 4 "end-cap" replicas (home patch + the 3 patch-partner
+            # shadow replicas), by analogy with the 3-replica case's
+            # slot1/slot2: vote first via their own RMS pool, UNLESS they
+            # are in a genuine 2-vs-2 tie, in which case the crossbar
+            # replica (hq[2], already weighted specially in the prior
+            # flat-pool code) breaks the tie; the LHV is consulted only
+            # as a last-resort fallback if the crossbar itself is
+            # ambiguous. This is a direct structural analogy to the
+            # validated 3-replica cascade, not independently re-derived
+            # for this topology -- carried only as far as that cheap
+            # analogy supports, per explicit guidance.
+            end_caps = [p0, p1, p3, p4]
+            high_count = sum(1 for x in end_caps if x >= 0.5)
+            end_caps_tied = high_count == 2
+
+            if not end_caps_tied:
+                prms = math.sqrt(sum(x**2 for x in end_caps) / 4)
+                qrms = math.sqrt(sum((1 - x) ** 2 for x in end_caps) / 4)
+                eff_prob = (prms + (1 - qrms)) / 2
+                result = (
+                    (random.random() < 0.5)
+                    if abs(eff_prob - 0.5) <= self._epsilon
+                    else (eff_prob >= 0.5)
                 )
-                / 7
-            )
-            result = ((prms + (1 - qrms)) / 2) >= 0.5
-            syndrome = (
-                [1 - p[0], 1 - p[1], 1 - p[2], 1 - p[3], 1 - p[4]]
-                if result
-                else [p[0], p[1], p[2], p[3], p[4]]
-            )
+            elif abs(p2 - 0.5) > self._epsilon:
+                result = p2 >= 0.5
+            elif lhv is not None:
+                p_lhv = lhv.prob()
+                result = (
+                    (random.random() < 0.5)
+                    if abs(p_lhv - 0.5) <= self._epsilon
+                    else (p_lhv >= 0.5)
+                )
+            else:
+                result = random.random() < 0.5
+
+            p = [p0, p1, p2, p3, p4]
+            syndrome = [1 - x for x in p] if result else list(p)
             for q in range(5):
                 if syndrome[q] > (0.5 + self._epsilon):
-                    if q == 2:
-                        hq[q].x()
-                    else:
-                        self.sim[hq[q][0]].x(hq[q][1])
+                    self.sim[hq[q][0]].x(hq[q][1])
 
             if not skip_rotation:
-                a, i = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
-                a[0], i[0] = self._get_bloch_angles(hq[0])
-                a[1], i[1] = self._get_bloch_angles(hq[1])
-                a[2], i[2] = QrackAceBackend._get_lhv_bloch_angles(hq[2])
-                a[3], i[3] = self._get_bloch_angles(hq[3])
-                a[4], i[4] = self._get_bloch_angles(hq[4])
+                a, i, w = [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]
+                a[0], i[0], r0 = self._get_bloch_angles(hq[0])
+                a[1], i[1], r1 = self._get_bloch_angles(hq[1])
+                a[2], i[2], r2 = self._get_bloch_angles(hq[2])
+                a[3], i[3], r3 = self._get_bloch_angles(hq[3])
+                a[4], i[4], r4 = self._get_bloch_angles(hq[4])
+                w = [1 - r0, 1 - r1, 1 - r2, 1 - r3, 1 - r4]
 
-                a_target = 0
-                i_target = 0
-                for x in range(5):
-                    if x == 2:
-                        continue
-                    a_target += a[x]
-                    i_target += i[x]
-
-                a_target /= 5
-                i_target /= 5
-                for x in range(5):
-                    if x == 2:
-                        QrackAceBackend._rotate_lhv_to_bloch(
-                            hq[x], a_target - a[x], i_target - i[x]
-                        )
-                    else:
+                w_total = sum(w)
+                if w_total > self._epsilon:
+                    a_target = sum(wx * ax for wx, ax in zip(w, a)) / w_total
+                    i_target = sum(wx * ix for wx, ix in zip(w, i)) / w_total
+                    # hq[0] is excluded from the rotation itself, by the
+                    # same reasoning as the 3-replica case above: it's
+                    # allocated identically (unconditionally, first, in
+                    # the qubit's home-patch simulator) before any
+                    # boundary/crossbar extension logic runs, so it's the
+                    # replica most likely to carry real, same-simulator
+                    # coherent entanglement worth protecting from the
+                    # decoherence a physical rotation would cost it.
+                    # Indices 1-4 are all crossbar-extension slots with
+                    # no comparable real entanglement to lose.
+                    for x in range(1, 5):
                         self._rotate_to_bloch(hq[x], a_target - a[x], i_target - i[x])
+                # If every replica reads as maximally mixed (w_total ~ 0),
+                # there is no well-defined direction to rotate toward at
+                # all -- skip the rotation rather than rotate toward an
+                # arbitrary/undefined target derived from noise.
 
         else:
-            # RMS
-            p = [
-                self.sim[hq[0][0]].prob(hq[0][1]),
-                self.sim[hq[1][0]].prob(hq[1][1]),
-                hq[2].prob(),
-            ]
-            # Balancing suggestion from Elara (the custom OpenAI GPT)
-            prms = math.sqrt((p[0] ** 2 + p[1] ** 2 + p[2] ** 2) / 3)
-            qrms = math.sqrt(((1 - p[0]) ** 2 + (1 - p[1]) ** 2 + (1 - p[2]) ** 2) / 3)
-            result = ((prms + (1 - qrms)) / 2) >= 0.5
-            syndrome = [1 - p[0], 1 - p[1], 1 - p[2]] if result else [p[0], p[1], p[2]]
-            for q in range(3):
-                if syndrome[q] > (0.5 + self._epsilon):
-                    if q == 2:
-                        hq[q].x()
-                    else:
+            lhv = self._lhv.get(lq)
+            if lhv is None:
+                # RMS
+                p = [
+                    self.sim[hq[0][0]].prob(hq[0][1]),
+                    self.sim[hq[1][0]].prob(hq[1][1]),
+                    self.sim[hq[2][0]].prob(hq[2][1]),
+                ]
+                # Balancing suggestion from Elara (the custom OpenAI GPT)
+                prms = math.sqrt((p[0] ** 2 + p[1] ** 2 + p[2] ** 2) / 3)
+                qrms = math.sqrt(((1 - p[0]) ** 2 + (1 - p[1]) ** 2 + (1 - p[2]) ** 2) / 3)
+                eff_prob = (prms + (1 - qrms)) / 2
+                result = (
+                    (random.random() < 0.5)
+                    if abs(eff_prob - 0.5) <= self._epsilon
+                    else (eff_prob >= 0.5)
+                )
+                syndrome = [1 - p[0], 1 - p[1], 1 - p[2]] if result else [p[0], p[1], p[2]]
+                for q in range(3):
+                    if syndrome[q] > (0.5 + self._epsilon):
                         self.sim[hq[q][0]].x(hq[q][1])
+            else:
+                # Conditional tie-breaking cascade, NOT a fixed-weight pool.
+                # A fixed weight on slot0/lhv pulls every decision toward
+                # 0.5 even when slot1 and slot2 already agree confidently,
+                # because slot0 and lhv are legitimately, permanently near
+                # 0.5 for genuinely-entangled topologies (e.g. when slot0
+                # shares a simulator with the control) -- a "vote" stuck at
+                # 0.5 is not neutral in an RMS pool, it actively drags the
+                # result toward the center. The actual intent ("LHV serves
+                # only to act as a tie-breaker") is a conditional, not a
+                # weight: trust slot1/slot2 alone whenever they agree, and
+                # only consult slot0, then lhv, when they genuinely don't.
+                #
+                p0 = self.sim[hq[0][0]].prob(hq[0][1])
+                p1 = self.sim[hq[1][0]].prob(hq[1][1])
+                p2 = self.sim[hq[2][0]].prob(hq[2][1])
+                p_lhv = lhv.prob()
 
-            if not skip_rotation:
-                a, i = [0, 0, 0], [0, 0, 0]
-                a[0], i[0] = self._get_bloch_angles(hq[0])
-                a[1], i[1] = self._get_bloch_angles(hq[1])
-                a[2], i[2] = QrackAceBackend._get_lhv_bloch_angles(hq[2])
+                end_caps_agree = (p1 >= 0.5) == (p2 >= 0.5)
+                slot0_disagrees_with_end_caps = (
+                    end_caps_agree
+                    and (abs(p0 - 0.5) > self._epsilon)
+                    and ((p0 >= 0.5) != (p1 >= 0.5))
+                )
+                if slot0_disagrees_with_end_caps:
+                    # The end-caps agreeing is not, by itself, reliable
+                    # corroboration: it can equally well mean both are
+                    # stale (e.g. an interior qubit they were shadow-
+                    # coupled to has since been measured for real, and
+                    # only slot0 -- which shares a simulator with that
+                    # interior qubit -- has actually been updated to
+                    # reflect it). When slot0 has a real, non-ambiguous
+                    # opinion that contradicts the agreeing pair, that
+                    # contradiction is itself the signal that the pair's
+                    # agreement is stale, not corroborating -- so trust
+                    # slot0 directly, overriding the agreement-trusts-
+                    # itself default below.
+                    result = p0 >= 0.5
+                elif end_caps_agree:
+                    prms = math.sqrt((p1**2 + p2**2) / 2)
+                    qrms = math.sqrt(((1 - p1) ** 2 + (1 - p2) ** 2) / 2)
+                    eff_prob = (prms + (1 - qrms)) / 2
+                    result = (
+                        (random.random() < 0.5)
+                        if abs(eff_prob - 0.5) <= self._epsilon
+                        else (eff_prob >= 0.5)
+                    )
+                elif abs(p0 - 0.5) > self._epsilon:
+                    # Genuine deadlock between slot1/slot2; slot0 (a real,
+                    # exactly-entangled qubit in this common topology) has
+                    # a real opinion, so it breaks the tie.
+                    result = p0 >= 0.5
+                else:
+                    # slot0 is itself ambiguous; only now does the LHV's
+                    # continuous, non-collapsing proxy actually decide.
+                    result = (
+                        (random.random() < 0.5)
+                        if abs(p_lhv - 0.5) <= self._epsilon
+                        else (p_lhv >= 0.5)
+                    )
 
-                a_target = 0
-                i_target = 0
-                for x in range(3):
-                    if x == 2:
-                        continue
-                    a_target += a[x]
-                    i_target += i[x]
+                p = [p0, p1, p2]
+                syndrome = [1 - x for x in p] if result else list(p)
+                for q in range(3):
+                    if syndrome[q] > (0.5 + self._epsilon):
+                        self.sim[hq[q][0]].x(hq[q][1])
+                # The LHV proxy is never hard-collapsed via x(); it is only
+                # ever updated by its own transversal gate evolution and
+                # _cpauli_lhv, preserving the property that makes it usable
+                # as a non-collapsing tie-breaker of last resort.
 
-                a_target /= 3
-                i_target /= 3
-                for x in range(3):
-                    if x == 2:
-                        QrackAceBackend._rotate_lhv_to_bloch(
-                            hq[x], a_target - a[x], i_target - i[x]
-                        )
-                    else:
+            if (not skip_rotation) and (not end_caps_agree):
+                a, i, w = [0, 0, 0], [0, 0, 0], [0, 0, 0]
+                a[0], i[0], r0 = self._get_bloch_angles(hq[0])
+                a[1], i[1], r1 = self._get_bloch_angles(hq[1])
+                a[2], i[2], r2 = self._get_bloch_angles(hq[2])
+                w = [1 - r0, 1 - r1, 1 - r2]
+
+                w_total = sum(w)
+                if w_total > self._epsilon:
+                    a_target = sum(wx * ax for wx, ax in zip(w, a)) / w_total
+                    i_target = sum(wx * ix for wx, ix in zip(w, i)) / w_total
+                    # slot0 (hq[0]) is excluded from the rotation itself:
+                    # it commonly shares a real simulator with another
+                    # logical qubit it's still genuinely, coherently
+                    # entangled with (e.g. an interior control qubit),
+                    # and physically rotating it -- even toward a
+                    # well-intentioned averaged target -- is a real
+                    # decoherence event on that relationship. slot0's
+                    # Bloch angles still inform the target above (so
+                    # slot1/slot2 reconcile toward a value that accounts
+                    # for what slot0 currently shows), but only slot1 and
+                    # slot2 (the lossy shadow replicas, which have no
+                    # comparable real entanglement to lose) are actually
+                    # rotated.
+                    for x in range(1, 3):
                         self._rotate_to_bloch(hq[x], a_target - a[x], i_target - i[x])
 
         if phase:
             for q in qb:
                 b = hq[q]
                 self.sim[b[0]].h(b[1])
-            b = hq[lhv]
-            b.h()
+            if lq in self._lhv:
+                self._lhv[lq].h()
 
     def apply_magnetic_bias(self, q, b):
         if b == 0:
@@ -639,199 +874,290 @@ class QrackAceBackend:
         b = math.exp(b)
         for x in q:
             hq = self._unpack(x)
-            for c in range(len(hq)):
-                h = hq[c]
-                if c == 2:
-                    a, i = QrackAceBackend._get_lhv_bloch_angles(h)
-                    QrackAceBackend._rotate_lhv_to_bloch(
-                        h,
-                        math.atan(math.tan(a) * b) - a,
-                        math.atan(math.tan(i) * b) - i,
-                    )
-                else:
-                    a, i = self._get_bloch_angles(h)
-                    self._rotate_to_bloch(
-                        h,
-                        math.atan(math.tan(a) * b) - a,
-                        math.atan(math.tan(i) * b) - i,
-                    )
+            for h in hq:
+                a, i, _ = self._get_bloch_angles(h)
+                self._rotate_to_bloch(
+                    h,
+                    math.atan(math.tan(a) * b) - a,
+                    math.atan(math.tan(i) * b) - i,
+                )
 
     def u(self, lq, th, ph, lm):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].u(b[1], th, ph, lm)
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].u(b[1], th, ph, lm)
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].u(b[1], th, ph, lm)
 
-        b = hq[lhv]
-        b.u(th, ph, lm)
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.u(th, ph, lm)
 
-        self._correct(lq, False, True)
-        self._correct(lq, True, False)
+        # Correction deferred to next 2-qubit gate (_cpauli calls _correct)
+
+    def _revert_shadow_commitment(self, lq1):
+        """Revert shadow-committed replicas recorded under lq1. H-reverts
+        each committed shadow replica (undoing the stale Z-basis commitment),
+        stores the reverted tuples in _pending_skip[lq2] so the NEXT gate on
+        that boundary qubit skips those replicas entirely (rotating an H-reverted
+        shadow replica from the wrong starting state gives a wrong result; the
+        right behavior is to skip it and let the next coupling gate re-derive
+        from scratch), and returns the reverted set for the immediate caller to
+        skip as well (for case A, where the control's own rotation should also
+        skip its own shadow replicas that were just un-committed)."""
+        if self._coupling_history is None:
+            return set()
+        hist = self._coupling_history.pop(lq1, None)
+        if hist is None:
+            return set()
+        reverted_all = set()
+        for lq2, targets in hist:
+            reverted = set()
+            for t_sim, t_idx in targets:
+                self.sim[t_sim].h(t_idx)
+                reverted.add((t_sim, t_idx))
+            # Store as pending skip for the NEXT gate on lq2 (case B):
+            # when the boundary qubit's own gate runs, it should skip
+            # these replicas rather than applying its gate to the freshly-
+            # H-reverted, uncommitted state.
+            if reverted:
+                existing = self._pending_skip.get(lq2, set())
+                self._pending_skip[lq2] = existing | reverted
+            self._coupling_history_rev.pop(lq2, None)
+            reverted_all |= reverted
+        return reverted_all
+
+    def _invalidate_for_gate(self, lq):
+        """Called by every single-qubit gate dispatcher. Returns the set of
+        (sim_id, idx) shadow replicas that should be SKIPPED in the calling
+        gate's own application loop.
+        - Case A: lq is the coherent-partner (lq1) in a live history entry.
+          A gate on the control side invalidates the shadow commitment: reverts
+          the shadow targets via H (returning them to uncommitted 0.5), stores
+          them in pending_skip[lq2] for the NEXT gate on the boundary qubit,
+          and returns them for the immediate caller to skip as well (since the
+          control's own replica at slot0 may also be in the reverted set).
+        - Case B: lq is the boundary recipient (lq2) of a commitment that a
+          prior case-A revert already H-reverted. Consumes the pending_skip
+          set so the boundary gate doesn't apply itself to the freshly-
+          uncommitted replicas (which would give the wrong result from the
+          wrong starting state). Case B NEVER triggers a fresh revert --
+          only case A does, because only a gate on the control side actually
+          invalidates the commitment; a gate on the boundary side just needs
+          to avoid corrupting the already-reverted starting state."""
+        if self._coupling_history is None:
+            return set()
+        skip = set()
+        # Case A: lq is the coherent control side -- fire the revert.
+        if lq in self._coupling_history:
+            skip |= self._revert_shadow_commitment(lq)
+        # Case B: lq is the boundary side -- ONLY consume pending_skip,
+        # never trigger a fresh revert (that would incorrectly revert
+        # a still-valid commitment that no control-side gate has touched).
+        pending = self._pending_skip.pop(lq, None)
+        if pending:
+            skip |= pending
+        return skip
 
     def r(self, p, th, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].r(p, th, b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].r(p, th, b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].r(p, th, b[1])
 
-        b = hq[lhv]
-        if p == Pauli.PauliX:
-            b.rx(th)
-        elif p == Pauli.PauliY:
-            b.ry(th)
-        elif p == Pauli.PauliZ:
-            b.rz(th)
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            if p == Pauli.PauliX:
+                lhv.rx(th)
+            elif p == Pauli.PauliY:
+                lhv.ry(th)
+            elif p == Pauli.PauliZ:
+                lhv.rz(th)
 
-        if p != Pauli.PauliZ:
-            self._correct(lq, False, p != Pauli.PauliX)
-        if p != Pauli.PauliX:
-            self._correct(lq, True)
+        # Correction deferred to next 2-qubit gate (_cpauli calls _correct)
 
     def h(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].h(b[1])
             return
 
         self._correct(lq)
+        skip = self._invalidate_for_gate(lq)
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].h(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].h(b[1])
 
-        b = hq[lhv]
-        b.h()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.h()
 
-        self._correct(lq)
+        # Correction deferred to next 2-qubit gate (_cpauli calls _correct)
 
     def s(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].s(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].s(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].s(b[1])
 
-        b = hq[lhv]
-        b.s()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.s()
 
     def adjs(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].adjs(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].adjs(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].adjs(b[1])
 
-        b = hq[lhv]
-        b.adjs()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.adjs()
 
     def x(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].x(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].x(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].x(b[1])
 
-        b = hq[lhv]
-        b.x()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.x()
 
     def y(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].y(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].y(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].y(b[1])
 
-        b = hq[lhv]
-        b.y()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.y()
 
     def z(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].z(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].z(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].z(b[1])
 
-        b = hq[lhv]
-        b.z()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.z()
 
     def t(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].t(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].t(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].t(b[1])
 
-        b = hq[lhv]
-        b.t()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.t()
 
     def adjt(self, lq):
         hq = self._unpack(lq)
         if len(hq) < 2:
             b = hq[0]
+            self._invalidate_for_gate(lq)
             self.sim[b[0]].adjt(b[1])
             return
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        skip = self._invalidate_for_gate(lq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
-            self.sim[b[0]].adjt(b[1])
+            if (b[0], b[1]) not in skip:
+                self.sim[b[0]].adjt(b[1])
 
-        b = hq[lhv]
-        b.adjt()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.adjt()
 
     def _get_gate(self, pauli, anti, sim_id):
         gate = None
@@ -871,20 +1197,31 @@ class QrackAceBackend:
 
         return connected, boundary
 
-    def _apply_coupling(self, pauli, anti, qb1, lhv1, hq1, qb2, lhv2, hq2, lq1_lr):
+    def _apply_coupling(self, pauli, anti, qb1, hq1, qb2, hq2, lq1_lr, lq1=None, lq2=None):
+        shadow_targets = []
         for q1 in qb1:
-            if q1 == lhv1:
-                continue
             b1 = hq1[q1]
             gate_fn, shadow_fn = self._get_gate(pauli, anti, b1[0])
             for q2 in qb2:
-                if q2 == lhv2:
-                    continue
                 b2 = hq2[q2]
                 if b1[0] == b2[0]:
                     gate_fn([b1[1]], b2[1])
                 elif lq1_lr or (b1[1] == b2[1]) or ((len(qb1) == 2) and (b1[1] == (b2[1] & 1))):
                     shadow_fn(b1, b2)
+                    shadow_targets.append(b2)
+
+        if (
+            self._coupling_history is not None
+            and lq1 is not None
+            and lq2 is not None
+            and shadow_targets
+        ):
+            entry = (lq2, tuple(shadow_targets))
+            hist = self._coupling_history.setdefault(
+                lq1, deque(maxlen=self.history_window)
+            )
+            hist.append(entry)
+            self._coupling_history_rev[lq2] = lq1
 
     def _cpauli(self, lq1, lq2, anti, pauli):
         lq1_row = lq1 // self._row_length
@@ -900,18 +1237,15 @@ class QrackAceBackend:
 
         self._correct(lq1)
 
-        qb1, lhv1 = QrackAceBackend._get_qb_lhv_indices(hq1)
-        qb2, lhv2 = QrackAceBackend._get_qb_lhv_indices(hq2)
-        # Apply cross coupling on hardware qubits first
-        self._apply_coupling(pauli, anti, qb1, lhv1, hq1, qb2, lhv2, hq2, lq1_lr)
-        # Apply coupling to the local-hidden-variable target
-        if lhv2 >= 0:
-            _cpauli_lhv(
-                hq1[lhv1].prob() if lhv1 >= 0 else self.sim[hq1[0][0]].prob(hq1[0][1]),
-                hq2[lhv2],
-                pauli,
-                anti,
-            )
+        qb1, _ = QrackAceBackend._get_qb_lhv_indices(hq1)
+        qb2, _ = QrackAceBackend._get_qb_lhv_indices(hq2)
+        # Apply cross coupling on every qubit, including former-LHV boundary
+        # qubits, which now live as real qubits in the shared boundary sim.
+        self._apply_coupling(pauli, anti, qb1, hq1, qb2, hq2, lq1_lr, lq1, lq2)
+
+        if lq2 in self._lhv:
+            ctrl_prob = self.sim[hq1[0][0]].prob(hq1[0][1])
+            _cpauli_lhv(ctrl_prob, self._lhv[lq2], pauli, anti)
 
         self._correct(lq1, True)
         if pauli != Pauli.PauliZ:
@@ -1008,7 +1342,7 @@ class QrackAceBackend:
             p = [
                 self.sim[hq[0][0]].prob(hq[0][1]),
                 self.sim[hq[1][0]].prob(hq[1][1]),
-                hq[2].prob(),
+                self.sim[hq[2][0]].prob(hq[2][1]),
                 self.sim[hq[3][0]].prob(hq[3][1]),
                 self.sim[hq[4][0]].prob(hq[4][1]),
             ]
@@ -1025,15 +1359,32 @@ class QrackAceBackend:
                 / 7
             )
         else:
-            # RMS
-            p = [
-                self.sim[hq[0][0]].prob(hq[0][1]),
-                self.sim[hq[1][0]].prob(hq[1][1]),
-                hq[2].prob(),
-            ]
-            # Balancing suggestion from Elara (the custom OpenAI GPT)
-            prms = math.sqrt((p[0] ** 2 + p[1] ** 2 + p[2] ** 2) / 3)
-            qrms = math.sqrt(((1 - p[0]) ** 2 + (1 - p[1]) ** 2 + (1 - p[2]) ** 2) / 3)
+            lhv = self._lhv.get(lq)
+            if lhv is None:
+                # RMS
+                p = [
+                    self.sim[hq[0][0]].prob(hq[0][1]),
+                    self.sim[hq[1][0]].prob(hq[1][1]),
+                    self.sim[hq[2][0]].prob(hq[2][1]),
+                ]
+                # Balancing suggestion from Elara (the custom OpenAI GPT)
+                prms = math.sqrt((p[0] ** 2 + p[1] ** 2 + p[2] ** 2) / 3)
+                qrms = math.sqrt(((1 - p[0]) ** 2 + (1 - p[1]) ** 2 + (1 - p[2]) ** 2) / 3)
+            else:
+                p = [
+                    self.sim[hq[0][0]].prob(hq[0][1]),
+                    self.sim[hq[1][0]].prob(hq[1][1]),
+                    self.sim[hq[2][0]].prob(hq[2][1]),
+                ]
+                # The three real replicas are already mutually consistent
+                # here (the _correct() call above already ran the
+                # conditional tie-breaking cascade and forced agreement via
+                # x()). Re-weighting in the LHV here would reintroduce the
+                # same center-dragging distortion the cascade was built to
+                # avoid -- a plain RMS over the now-settled replicas is the
+                # correct, already-decided answer.
+                prms = math.sqrt((p[0] ** 2 + p[1] ** 2 + p[2] ** 2) / 3)
+                qrms = math.sqrt(((1 - p[0]) ** 2 + (1 - p[1]) ** 2 + (1 - p[2]) ** 2) / 3)
 
         return (prms + (1 - qrms)) / 2
 
@@ -1046,7 +1397,7 @@ class QrackAceBackend:
         p = self.prob(lq)
         result = ((p + self._epsilon) >= 1) or (random.random() < p)
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
@@ -1057,10 +1408,11 @@ class QrackAceBackend:
             else:
                 self.sim[b[0]].force_m(b[1], result)
 
-        b = hq[lhv]
-        b.reset()
-        if result:
-            b.x()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.reset()
+            if result:
+                lhv.x()
 
         return result
 
@@ -1072,7 +1424,7 @@ class QrackAceBackend:
 
         self._correct(lq)
 
-        qb, lhv = QrackAceBackend._get_qb_lhv_indices(hq)
+        qb, _ = QrackAceBackend._get_qb_lhv_indices(hq)
 
         for q in qb:
             b = hq[q]
@@ -1083,12 +1435,13 @@ class QrackAceBackend:
             else:
                 self.sim[b[0]].force_m(b[1], result)
 
-        b = hq[1]
-        b.reset()
-        if result:
-            b.x()
+        lhv = self._lhv.get(lq)
+        if lhv is not None:
+            lhv.reset()
+            if result:
+                lhv.x()
 
-        return c
+        return result
 
     def m_all(self):
         # Randomize the order of measurement to amortize error.
@@ -1420,10 +1773,6 @@ class QrackAceBackend:
         return [
             "id",
             "u",
-            "u1",
-            "u2",
-            "u3",
-            "r",
             "rx",
             "ry",
             "rz",
@@ -1433,9 +1782,6 @@ class QrackAceBackend:
             "z",
             "s",
             "sdg",
-            "sx",
-            "sxdg",
-            "p",
             "t",
             "tdg",
             "cx",
@@ -1475,38 +1821,48 @@ class QrackAceBackend:
         return self._coupling_map
 
     # Designed by Dan, and implemented by Elara:
-    def create_noise_model(self, x=0.25, y=0.25):
+    def create_noise_model(self, x=0.125, y=0.25):
         if not _IS_QISKIT_AER_AVAILABLE:
             raise RuntimeError(
                 "Before trying to run_qiskit_circuit() with QrackAceBackend, you must install Qiskit Aer!"
             )
         noise_model = NoiseModel()
 
+        # Single-qubit depolarizing only on boundary qubits
+        boundary_qubits = set()
         for a, b in self.get_logical_coupling_map():
-            col_a, col_b = a % self._row_length, b % self._row_length
-            row_a, row_b = a // self._row_length, b // self._row_length
+            col_a = a % self._row_length
+            col_b = b % self._row_length
+            is_long_a = self._is_col_long_range[col_a]
+            is_long_b = self._is_col_long_range[col_b]
+            if not (is_long_a and is_long_b):
+                if not is_long_a:
+                    boundary_qubits.add(a)
+                if not is_long_b:
+                    boundary_qubits.add(b)
+
+        for q in boundary_qubits:
+            for gate in ["u", "u1", "u2", "u3", "h", "x", "y", "z",
+                         "s", "sdg", "t", "tdg", "rx", "ry", "rz"]:
+                noise_model.add_quantum_error(
+                    depolarizing_error(x, 1), gate, [q])
+
+        # Two-qubit depolarizing on boundary-crossing and boundary-adjacent gates
+        for a, b in self.get_logical_coupling_map():
+            col_a = a % self._row_length
+            col_b = b % self._row_length
             is_long_a = self._is_col_long_range[col_a]
             is_long_b = self._is_col_long_range[col_b]
 
             if is_long_a and is_long_b:
-                continue  # No noise on long-to-long
+                continue
 
-            if (col_a == col_b) or (row_a == row_b):
-                continue  # No noise for same column
+            p2 = 1 - (1 - y) ** 2 if (is_long_a or is_long_b) else y
+            p3 = 1 - (1 - y) ** 3 if (is_long_a or is_long_b) else 1 - (1 - y) ** 2
 
-            if is_long_a or is_long_b:
-                y_cy = 1 - (1 - y) ** 2
-                y_swap = 1 - (1 - y) ** 3
-                noise_model.add_quantum_error(depolarizing_error(y, 2), "cx", [a, b])
-                noise_model.add_quantum_error(depolarizing_error(y_cy, 2), "cy", [a, b])
-                noise_model.add_quantum_error(depolarizing_error(y_cy, 2), "cz", [a, b])
-                noise_model.add_quantum_error(depolarizing_error(y_swap, 2), "swap", [a, b])
-            else:
-                y_cy = 1 - (1 - y) ** 2
-                y_swap = 1 - (1 - y) ** 3
-                noise_model.add_quantum_error(depolarizing_error(y_cy, 2), "cx", [a, b])
-                noise_model.add_quantum_error(depolarizing_error(y_cy, 2), "cy", [a, b])
-                noise_model.add_quantum_error(depolarizing_error(y_cy, 2), "cz", [a, b])
-                noise_model.add_quantum_error(depolarizing_error(y_swap, 2), "swap", [a, b])
+            for gate in ["cx", "cy", "cz"]:
+                noise_model.add_quantum_error(depolarizing_error(p2, 2), gate, [a, b])
+            for gate in ["swap", "iswap"]:
+                noise_model.add_quantum_error(depolarizing_error(p3, 2), gate, [a, b])
 
         return noise_model

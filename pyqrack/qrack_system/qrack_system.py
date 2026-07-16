@@ -629,6 +629,7 @@ class QrackSystem:
             c_double,
             c_double,
             c_double,
+            c_double,
         ]
 
         self.qrack_lib.MCMtrx.restype = None
@@ -712,6 +713,7 @@ class QrackSystem:
             c_ulonglong,
             POINTER(c_ulonglong),
             c_ulonglong,
+            c_double,
             c_double,
             c_double,
             c_double,
@@ -1198,6 +1200,15 @@ class QrackSystem:
         self.qrack_lib.Separate.restype = None
         self.qrack_lib.Separate.argtypes = [
             c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
+        ]
+
+        self.qrack_lib.AreFactorized.restype = c_bool
+        self.qrack_lib.AreFactorized.argtypes = [
+            c_ulonglong,
+            c_ulonglong,
+            POINTER(c_ulonglong),
             c_ulonglong,
             POINTER(c_ulonglong),
         ]
