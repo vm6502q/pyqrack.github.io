@@ -22,7 +22,7 @@ copyright = '2022-2026, Daniel Strano and the Qrack Contributors'
 author = 'Daniel Strano and the Qrack Contributors'
 
 # The full version, including alpha/beta/rc tags
-release = 'v2.0.0'
+release = 'v2.7.1'
 
 
 # -- General configuration ---------------------------------------------------
