@@ -299,6 +299,38 @@ class QrackSimulator:
         Qrack.qrack_lib.S(self.sid, q)
         self._throw_if_error()
 
+    def sx(self, q):
+        """Applies SX (square root of X) gate.
+
+        Applies the 1/4 bit rotation to the qubit at “q.”
+
+        Args:
+            q: the qubit number on which the gate is applied to.
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        Qrack.qrack_lib.U(
+            self.sid, q, ctypes.c_double(math.pi / 2), ctypes.c_double(-math.pi / 2), ctypes.c_double(math.pi / 2)
+        )
+        self._throw_if_error()
+
+    def adjsx(self, q):
+        """Applies adjoint of SX (square root of X) gate.
+
+        Applies the 1/4 bit rotation to the qubit at “q.”
+
+        Args:
+            q: the qubit number on which the gate is applied to.
+
+        Raises:
+            RuntimeError: QrackSimulator raised an exception.
+        """
+        Qrack.qrack_lib.U(
+            self.sid, q, ctypes.c_double(-math.pi / 2), ctypes.c_double(-math.pi / 2), ctypes.c_double(math.pi / 2)
+        )
+        self._throw_if_error()
+
     def t(self, q):
         """Applies T gate.
 
@@ -1093,16 +1125,19 @@ class QrackSimulator:
         Returns:
             Measurement result of all qubits.
         """
-        num_q = self.num_qubits()
-        num_words = (num_q + 63) // 64
-        _r = (ctypes.c_ulonglong * num_words)()
-        Qrack.qrack_lib.MAllLong(self.sid, _r)
+        n = self.num_qubits()
+        bits_per_word = 64
+        n_words = (n + bits_per_word - 1) // bits_per_word
+        words = (ctypes.c_ulonglong * n_words)()
+
+        Qrack.qrack_lib.MAllLong(self.sid, words)
         self._throw_if_error()
-        r = 0
-        for w in range(num_words):
-            r <<= 64
-            r |= _r[w]
-        return r
+
+        result = 0
+        for i, w in enumerate(words):
+            result |= int(w) << (bits_per_word * i)
+        return result
+
 
     def measure_pauli(self, b, q):
         """Pauli Measurement gate
@@ -3467,10 +3502,26 @@ class QrackSimulator:
         return out
 
     def lossy_out_to_file(self, f, p=6, b=4):
+       """TurboQuant-based state out-to-file (for all simulator types)
+
+        Saves the simulator state to file, with TurboQuant-based lossy compression.
+
+        Args:
+            f: Name of file
+            p: base-2 exponent of block size
+            b: compressed bits per block
+        """
         Qrack.qrack_lib.lossy_out_to_file(self.sid, f.encode("utf-8"), min(p, self.num_qubits()), b)
         self._throw_if_error()
 
     def lossy_in_from_file(self, f):
+        """TurboQuant-based state in-from-file (for all simulator types)
+
+        Loads the simulator state from file, with TurboQuant-based lossy compression.
+
+        Args:
+            f: Name of file
+        """
         Qrack.qrack_lib.lossy_in_from_file(self.sid, f.encode("utf-8"))
         self._throw_if_error()
 
@@ -4187,15 +4238,9 @@ class QrackSimulator:
         elif name == "sdg":
             self._sim.adjs(operation.qubits[0]._index)
         elif name == "sx":
-            self._sim.mtrx(
-                [(1 + 1j) / 2, (1 - 1j) / 2, (1 - 1j) / 2, (1 + 1j) / 2],
-                operation.qubits[0]._index,
-            )
+            self._sim.sx(operation.qubits[0]._index)
         elif name == "sxdg":
-            self._sim.mtrx(
-                [(1 - 1j) / 2, (1 + 1j) / 2, (1 + 1j) / 2, (1 - 1j) / 2],
-                operation.qubits[0]._index,
-            )
+            self._sim.adjsx(operation.qubits[0]._index)
         elif name == "t":
             self._sim.t(operation.qubits[0]._index)
         elif name == "tdg":
@@ -4282,6 +4327,8 @@ class QrackSimulator:
             self._sim.mcz([q._index for q in operation.qubits[0:-1]], operation.qubits[-1]._index)
         elif name == "swap":
             self._sim.swap(operation.qubits[0]._index, operation.qubits[1]._index)
+        elif name == "cswap":
+            self._sim.cswap([q._index for q in operation.qubits[:-2]], operation.qubits[-2]._index, operation.qubits[-1]._index)
         elif name == "iswap":
             self._sim.iswap(operation.qubits[0]._index, operation.qubits[1]._index)
         elif name == "iswap_dg":
@@ -4526,6 +4573,8 @@ class QrackSimulator:
             "z",
             "s",
             "sdg",
+            "sx",
+            "sxdg",
             "t",
             "tdg",
             "cu",
@@ -4538,6 +4587,7 @@ class QrackSimulator:
             "ccx",
             "ccz",
             "swap",
+            "cswap",
             "iswap",
             "cswap",
             "reset",
